@@ -1,0 +1,2 @@
+# Sources are created in tests: has_secure_token runs on create, which fixtures
+# bypass (and both default fixtures would collide on the unique token).

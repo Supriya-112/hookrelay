@@ -27,7 +27,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: bash -c "bundle check || bundle install && bin/rails db:prepare && bin/rails server -b 0.0.0.0"
+    # Clear any stale PID first: the server writes tmp/pids/server.pid, and
+    # because tmp/ is bind-mounted it survives `docker compose down`, which would
+    # otherwise make the next `up` refuse to start.
+    command: bash -c "rm -f tmp/pids/server.pid && (bundle check || bundle install) && bin/rails db:prepare && bin/rails server -b 0.0.0.0"
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432
     volumes:

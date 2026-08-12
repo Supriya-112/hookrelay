@@ -36,10 +36,25 @@ docker compose run --rm web bin/rails c    # a console
 The app connects to the bundled Postgres over `DATABASE_URL`; gems and DB data
 persist in named volumes.
 
+### Try the ingest endpoint
+
+```bash
+docker compose up -d
+# create a source and copy its token
+docker compose exec web bin/rails runner 'puts Source.create!(name: "demo").token'
+# POST a webhook to it
+curl -i -X POST http://localhost:3000/in/<token> \
+  -H 'Content-Type: application/json' -d '{"hello":"world"}'
+# => HTTP/1.1 202 Accepted
+```
+
+The event is stored with its method, headers, and body; delivery to destinations
+arrives in M2.
+
 ## Roadmap
 
 - [x] **M0** Scaffold: Rails 8, Postgres, CI (RuboCop + tests + Brakeman), Docker dev, Kamal stub
-- [ ] **M1** Ingest — `POST /in/:token` persists an event and returns `202`
+- [x] **M1** Ingest — `POST /in/:token` persists an event and returns `202`
 - [ ] **M2** Deliver — a job forwards each event to its destination, recording every attempt
 - [ ] **M3** Retries — exponential backoff + jitter, max attempts, dead-letter
 - [ ] **M4** Inspector UI — a Hotwire dashboard; attempts stream in live
