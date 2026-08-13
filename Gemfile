@@ -63,4 +63,7 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+
+  # Stub outbound HTTP so delivery is tested without hitting real endpoints
+  gem "webmock"
 end

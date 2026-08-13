@@ -16,6 +16,7 @@ class IngestController < ApplicationController
       headers: request_headers,
       body: request.raw_post
     )
+    DeliverEventJob.perform_later(event)
     render json: { event_id: event.id }, status: :accepted
   end
 

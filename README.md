@@ -48,14 +48,16 @@ curl -i -X POST http://localhost:3000/in/<token> \
 # => HTTP/1.1 202 Accepted
 ```
 
-The event is stored with its method, headers, and body; delivery to destinations
-arrives in M2.
+The event is stored with its method, headers, and body. Give the source a
+destination (`source.destinations.create!(url: "https://…")` in `rails c`) and
+each event is delivered to it, recording every attempt (retries and a live
+inspector come next).
 
 ## Roadmap
 
 - [x] **M0** Scaffold: Rails 8, Postgres, CI (RuboCop + tests + Brakeman), Docker dev, Kamal stub
 - [x] **M1** Ingest — `POST /in/:token` persists an event and returns `202`
-- [ ] **M2** Deliver — a job forwards each event to its destination, recording every attempt
+- [x] **M2** Deliver — a job forwards each event to its destination, recording every attempt
 - [ ] **M3** Retries — exponential backoff + jitter, max attempts, dead-letter
 - [ ] **M4** Inspector UI — a Hotwire dashboard; attempts stream in live
 - [ ] **M5** Replay — re-deliver an event from the UI and API

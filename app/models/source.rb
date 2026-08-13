@@ -3,4 +3,5 @@ class Source < ApplicationRecord
   has_secure_token
 
   has_many :events, dependent: :destroy
+  has_many :destinations, dependent: :destroy
 end

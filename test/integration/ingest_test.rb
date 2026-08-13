@@ -1,6 +1,16 @@
 require "test_helper"
 
 class IngestTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
+  test "enqueues delivery for the received event" do
+    source = Source.create!(name: "GitHub")
+
+    assert_enqueued_with(job: DeliverEventJob) do
+      post ingest_path(source.token), params: "{}", headers: { "Content-Type" => "application/json" }
+    end
+  end
+
   test "stores an incoming webhook and acknowledges with 202" do
     source = Source.create!(name: "GitHub")
     payload = { "event" => "push", "id" => 42 }.to_json
