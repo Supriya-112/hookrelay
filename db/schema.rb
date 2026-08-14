@@ -10,14 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_12_173756) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_13_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "deliveries", force: :cascade do |t|
+    t.integer "attempts_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.bigint "destination_id", null: false
     t.bigint "event_id", null: false
+    t.datetime "next_attempt_at"
     t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
     t.index ["destination_id"], name: "index_deliveries_on_destination_id"

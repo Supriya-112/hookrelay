@@ -58,7 +58,7 @@ inspector come next).
 - [x] **M0** Scaffold: Rails 8, Postgres, CI (RuboCop + tests + Brakeman), Docker dev, Kamal stub
 - [x] **M1** Ingest — `POST /in/:token` persists an event and returns `202`
 - [x] **M2** Deliver — a job forwards each event to its destination, recording every attempt
-- [ ] **M3** Retries — exponential backoff + jitter, max attempts, dead-letter
+- [x] **M3** Retries — exponential backoff + jitter, max attempts, dead-letter
 - [ ] **M4** Inspector UI — a Hotwire dashboard; attempts stream in live
 - [ ] **M5** Replay — re-deliver an event from the UI and API
 - [ ] **M6** Signatures — verify inbound provider HMAC, sign outbound

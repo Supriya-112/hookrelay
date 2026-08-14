@@ -6,6 +6,7 @@ class Delivery < ApplicationRecord
   # One delivery per (event, destination); the DB has a matching unique index.
   validates :destination_id, uniqueness: { scope: :event_id }
 
-  # pending until an attempt resolves it; retries and dead-lettering arrive in M3.
-  enum :status, { pending: "pending", succeeded: "succeeded", failed: "failed" }, default: :pending
+  # pending → (attempt) → succeeded, or failed while retries remain, or dead once
+  # the retry budget is exhausted.
+  enum :status, { pending: "pending", failed: "failed", succeeded: "succeeded", dead: "dead" }, default: :pending
 end
