@@ -18,8 +18,12 @@ jobs:
         with:
           bundler-cache: true
 
+      # Run the gem directly rather than through bin/brakeman: that wrapper adds
+      # --ensure-latest, which fails the scan whenever a newer Brakeman exists,
+      # so every upstream release would turn this build red until we bump the
+      # lockfile. Dependabot/bundler-audit are how we keep the pin fresh.
       - name: Scan for common Rails security vulnerabilities using static analysis
-        run: bin/brakeman --no-pager
+        run: bundle exec brakeman --no-pager
       
       - name: Scan for known security vulnerabilities in gems used
         run: bin/bundler-audit
