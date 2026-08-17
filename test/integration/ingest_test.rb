@@ -39,6 +39,18 @@ class IngestTest < ActionDispatch::IntegrationTest
     assert_equal payload, source.events.last.body.b
   end
 
+  test "accepts a sender whose user agent looks like an ancient browser" do
+    source = Source.create!(name: "GitHub")
+
+    assert_difference -> { source.events.count }, 1 do
+      post ingest_path(source.token),
+        params: "{}",
+        headers: { "Content-Type" => "application/json", "User-Agent" => "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1)" }
+    end
+
+    assert_response :accepted
+  end
+
   test "an unknown token is rejected and stores nothing" do
     assert_no_difference -> { Event.count } do
       post "/in/does-not-exist", params: "x"
