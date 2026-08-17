@@ -77,6 +77,41 @@ class DeliveryJobTest < ActiveJob::TestCase
     assert_nil delivery.next_attempt_at
   end
 
+  test "does nothing for a delivery another worker is already delivering" do
+    delivery = build_delivery("https://ok.example.com/hook")
+    delivery.update!(status: :delivering)
+
+    # No stub: if it tried to POST, WebMock (net connect disabled) would raise.
+    assert_no_difference -> { delivery.delivery_attempts.count } do
+      DeliveryJob.perform_now(delivery)
+    end
+  end
+
+  test "records a response body that is not valid UTF-8 instead of failing to save" do
+    delivery = build_delivery("https://bad.example.com/hook")
+    stub_request(:post, "https://bad.example.com/hook").to_return(status: 500, body: "oops \xC3\x28".b)
+
+    DeliveryJob.perform_now(delivery)
+
+    attempt = delivery.delivery_attempts.sole
+    assert attempt.response_body.valid_encoding?
+    assert attempt.response_body.start_with?("oops ")
+    assert delivery.reload.failed?
+  end
+
+  test "refuses a destination inside the private network and records why" do
+    delivery = build_delivery("http://169.254.169.254/latest/meta-data")
+
+    with_private_destinations_refused do
+      DeliveryJob.perform_now(delivery)
+    end
+
+    attempt = delivery.delivery_attempts.sole
+    assert_nil attempt.status_code
+    assert_match "refused to deliver", attempt.error
+    assert delivery.reload.failed?
+  end
+
   test "does nothing for an already-resolved delivery" do
     delivery = build_delivery("https://ok.example.com/hook")
     delivery.update!(status: :succeeded)
@@ -88,9 +123,10 @@ class DeliveryJobTest < ActiveJob::TestCase
   end
 
   test "retry_delay grows with the attempt and stays within bounds" do
-    assert_operator DeliveryJob.retry_delay(1).to_i, :<=, 5
+    # Equal jitter: each delay lands between half the backoff and the whole of it.
+    assert DeliveryJob.retry_delay(1).to_i.between?(2, 5)
     assert DeliveryJob.retry_delay(3).to_i.between?(10, 20)
-    assert_operator DeliveryJob.retry_delay(20).to_i, :<=, 3600
+    assert DeliveryJob.retry_delay(20).to_i.between?(1800, 3600)
   end
 
   private

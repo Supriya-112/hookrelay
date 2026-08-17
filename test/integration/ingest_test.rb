@@ -29,6 +29,16 @@ class IngestTest < ActionDispatch::IntegrationTest
     assert_equal "abc", event.headers["X-Test"]
   end
 
+  test "accepts a body that is not text, such as a gzipped payload" do
+    source = Source.create!(name: "GitHub")
+    payload = "\x1f\x8b\x08\x00\x00\x00\x00\x00binary\xC3\x28".b
+
+    post ingest_path(source.token), params: payload, headers: { "Content-Type" => "application/octet-stream" }
+
+    assert_response :accepted
+    assert_equal payload, source.events.last.body.b
+  end
+
   test "an unknown token is rejected and stores nothing" do
     assert_no_difference -> { Event.count } do
       post "/in/does-not-exist", params: "x"

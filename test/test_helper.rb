@@ -14,6 +14,15 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Add more helper methods to be used by all tests here...
+    # Runs the block with DestinationGuard enforcing, the way any deployment other
+    # than local development has it.
+    def with_private_destinations_refused
+      hookrelay = Rails.configuration.x.hookrelay
+      was_allowed = hookrelay.allow_private_destinations
+      hookrelay.allow_private_destinations = false
+      yield
+    ensure
+      hookrelay.allow_private_destinations = was_allowed
+    end
   end
 end

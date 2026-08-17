@@ -48,10 +48,28 @@ curl -i -X POST http://localhost:3000/in/<token> \
 # => HTTP/1.1 202 Accepted
 ```
 
-The event is stored with its method, headers, and body. Give the source a
-destination (`source.destinations.create!(url: "https://…")` in `rails c`) and
-each event is delivered to it, recording every attempt (retries and a live
-inspector come next).
+The event is stored with its method, headers, and body — bytes exactly as they
+arrived, so gzipped and protobuf payloads survive as well as JSON. Give the
+source a destination (`source.destinations.create!(url: "https://…")` in
+`rails c`) and each event is delivered to it, recording every attempt (a live
+inspector comes next).
+
+## How delivery behaves
+
+- **One POST per delivery.** A worker claims a delivery before sending it, so a
+  duplicated or overlapping job can't deliver the same event twice.
+- **Retries with backoff.** A failed attempt is retried up to five times, waiting
+  5s, 10s, 20s … capped at an hour, with jitter so a burst of failures to one
+  destination doesn't retry in lockstep. After that the delivery is dead.
+- **Nothing gets stranded.** A worker that dies mid-delivery, or a retry lost with
+  its queue, is picked up by a sweep that runs every five minutes; the lost
+  attempt is recorded, so it still counts against the retry budget.
+- **Private addresses are refused.** Destinations are user-supplied, so
+  deliveries to loopback, link-local (including the cloud metadata endpoint) and
+  private ranges are rejected and logged rather than sent. Local development
+  needs the opposite, so `docker compose` sets
+  `HOOKRELAY_ALLOW_PRIVATE_DESTINATIONS=true` and can deliver to sinks on your
+  machine.
 
 ## Roadmap
 

@@ -3,6 +3,6 @@ class DeliveryAttempt < ApplicationRecord
 
   # A response arrived when status_code is set; otherwise error explains why not.
   def ok?
-    status_code.present? && status_code.between?(200, 299)
+    WebhookClient::SUCCESS_STATUSES.cover?(status_code)
   end
 end

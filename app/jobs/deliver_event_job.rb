@@ -1,14 +1,24 @@
 # Fans a received event out to each of its source's destinations, creating one
 # Delivery per destination and queuing that delivery's first attempt. Splitting
 # fan-out from the attempt keeps each destination's delivery independent (which
-# retries in M3 rely on) and keeps the ingest request fast.
+# retries rely on) and keeps the ingest request fast.
 class DeliverEventJob < ApplicationJob
   queue_as :default
 
   def perform(event)
     event.source.destinations.find_each do |destination|
-      delivery = Delivery.find_or_create_by!(event: event, destination: destination)
-      DeliveryJob.perform_later(delivery)
+      DeliveryJob.perform_later(delivery_for(event, destination))
     end
+  end
+
+  private
+
+  # Two runs of this job for the same event can reach a destination together; the
+  # unique index on (event, destination) settles it and the loser carries on with
+  # the row that won.
+  def delivery_for(event, destination)
+    Delivery.find_or_create_by!(event: event, destination: destination)
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+    Delivery.find_by!(event: event, destination: destination)
   end
 end

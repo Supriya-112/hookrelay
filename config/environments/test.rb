@@ -50,4 +50,9 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Pinned so the suite behaves the same however the environment is set up: with
+  # the check off, no test resolves a hostname. The tests that cover the check
+  # switch it on themselves — see `with_private_destinations_refused`.
+  config.x.hookrelay.allow_private_destinations = true
 end

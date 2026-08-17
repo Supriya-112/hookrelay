@@ -6,6 +6,10 @@ class IngestController < ApplicationController
   # forgery check doesn't apply to this endpoint.
   skip_forgery_protection
 
+  # Rack keeps the protocol version in HTTP_VERSION alongside the real headers;
+  # it was never something the sender set, so it isn't part of the event.
+  RACK_PSEUDO_HEADERS = %w[HTTP_VERSION].freeze
+
   def create
     source = Source.find_by(token: params[:token])
     return head :not_found unless source
@@ -28,6 +32,7 @@ class IngestController < ApplicationController
   def request_headers
     request.headers.env.each_with_object({}) do |(key, value), headers|
       next unless key.start_with?("HTTP_") && value.is_a?(String)
+      next if RACK_PSEUDO_HEADERS.include?(key)
 
       name = key.delete_prefix("HTTP_").split("_").map(&:capitalize).join("-")
       headers[name] = value

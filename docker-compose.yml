@@ -33,6 +33,9 @@ services:
     command: bash -c "rm -f tmp/pids/server.pid && (bundle check || bundle install) && bin/rails db:prepare && bin/rails server -b 0.0.0.0"
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432
+      # Local destinations (a sink on your machine, another container) are private
+      # addresses, which deliveries refuse to call anywhere else.
+      HOOKRELAY_ALLOW_PRIVATE_DESTINATIONS: "true"
     volumes:
       - .:/app
       - bundle:/usr/local/bundle

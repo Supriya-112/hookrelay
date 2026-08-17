@@ -23,5 +23,11 @@ module Hookrelay
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # Deliveries to loopback and private addresses are refused (see
+    # DestinationGuard). Local development delivers to sinks on the same machine,
+    # so docker-compose.yml opts out; anything reachable from the internet should
+    # not.
+    config.x.hookrelay.allow_private_destinations = ENV["HOOKRELAY_ALLOW_PRIVATE_DESTINATIONS"] == "true"
   end
 end
