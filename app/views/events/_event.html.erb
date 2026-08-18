@@ -1,0 +1,16 @@
+<article class="card" id="<%= dom_id(event) %>">
+  <div class="card-head">
+    <%= link_to timestamp(event.created_at), event_path(event), class: "card-title" %>
+    <span class="chip"><%= event.http_method %></span>
+    <% if event.content_type.present? %>
+      <span class="chip"><%= event.content_type %></span>
+    <% end %>
+  </div>
+
+  <div class="pills">
+    <% event.deliveries.each do |delivery| %>
+      <%= status_pill(delivery.status) %>
+      <span class="dim truncate"><%= delivery.destination.url %></span>
+    <% end %>
+  </div>
+</article>

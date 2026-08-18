@@ -24,6 +24,13 @@
   </head>
 
   <body>
-    <%= yield %>
+    <header class="topbar">
+      <%= link_to "Hookrelay", root_path, class: "brand" %>
+      <span class="dim">webhook gateway</span>
+    </header>
+
+    <main>
+      <%= yield %>
+    </main>
   </body>
 </html>

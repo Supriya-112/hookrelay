@@ -1,10 +1,199 @@
 /*
- * This is a manifest file that'll be compiled into application.css.
- *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
- *
- * Consider organizing styles into separate files for maintainability.
+ * Styles for the inspector. Hand-written and deliberately small — this is a few
+ * tables and lists, and a framework would be more machinery than the pages need.
+ * Propshaft serves this file as-is; there is no build step.
  */
+
+:root {
+  --bg: #fbfbfa;
+  --panel: #ffffff;
+  --ink: #1a1a19;
+  --ink-dim: #6b6b66;
+  --line: #e3e3df;
+  --accent: #2f6f4f;
+  --ok: #1f7a4d;
+  --ok-bg: #e6f4ec;
+  --warn: #8a5a00;
+  --warn-bg: #fdf1dc;
+  --bad: #a32b1f;
+  --bad-bg: #fbe9e7;
+  --info: #1f5b8a;
+  --info-bg: #e7f0f8;
+  --idle: #5c5c57;
+  --idle-bg: #eeeeea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a;
+    --panel: #1d1f23;
+    --ink: #e8e8e4;
+    --ink-dim: #9a9a94;
+    --line: #2d2f34;
+    --accent: #7fc4a0;
+    --ok: #7fc4a0;
+    --ok-bg: #1b2f26;
+    --warn: #e0b063;
+    --warn-bg: #322a19;
+    --bad: #e88b7d;
+    --bad-bg: #33211f;
+    --info: #85b6dc;
+    --info-bg: #1b2733;
+    --idle: #a3a39c;
+    --idle-bg: #26282c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+code, pre, .code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; }
+
+a { color: var(--accent); }
+a:hover { text-decoration: none; }
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  padding: .9rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.brand { font-weight: 650; font-size: 1.05rem; text-decoration: none; color: var(--ink); }
+
+main { max-width: 62rem; margin: 0 auto; padding: 1.75rem 1.5rem 4rem; }
+
+h1 { font-size: 1.5rem; margin: .2rem 0 .35rem; }
+h2 { font-size: 1rem; margin: 0 0 .6rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-dim); }
+section { margin-top: 2rem; }
+
+.crumbs { font-size: .85rem; color: var(--ink-dim); margin-bottom: .5rem; }
+.meta { color: var(--ink-dim); font-size: .875rem; margin: .2rem 0 0; }
+.dim { color: var(--ink-dim); }
+.num { text-align: right; }
+
+.empty {
+  color: var(--ink-dim);
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: .9rem;
+}
+
+/* Live updates prepend into these lists, so the empty note is left in place and
+   simply steps aside once there is something to show. */
+.cards > .empty:not(:only-child) { display: none; }
+
+code {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: .05rem .3rem;
+  font-size: .85em;
+  word-break: break-all;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.grid th, .grid td { text-align: left; padding: .6rem .75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.grid thead th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-dim); }
+.grid tbody tr:last-child th, .grid tbody tr:last-child td { border-bottom: 0; }
+.grid.kv th { width: 16rem; font-weight: 550; color: var(--ink-dim); }
+
+.plain { list-style: none; margin: 0; padding: 0; }
+.plain li + li { margin-top: .35rem; }
+
+.cards { display: flex; flex-direction: column; gap: .6rem; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .75rem .9rem;
+}
+
+.card-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.card-title { font-weight: 550; text-decoration: none; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 34rem; }
+
+.chip {
+  font-size: .72rem;
+  padding: .1rem .4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-dim);
+}
+
+.pills { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-top: .5rem; font-size: .85rem; }
+
+.pill {
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: .12rem .45rem;
+  border-radius: 999px;
+}
+
+.pill-pending { background: var(--idle-bg); color: var(--idle); }
+.pill-delivering { background: var(--info-bg); color: var(--info); }
+.pill-succeeded { background: var(--ok-bg); color: var(--ok); }
+.pill-failed { background: var(--warn-bg); color: var(--warn); }
+.pill-dead { background: var(--bad-bg); color: var(--bad); }
+
+.attempts { margin-top: .6rem; display: flex; flex-direction: column; gap: .3rem; }
+
+.attempt {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  flex-wrap: wrap;
+  font-size: .85rem;
+  padding: .35rem .5rem;
+  border-left: 3px solid var(--line);
+  background: var(--bg);
+  border-radius: 0 5px 5px 0;
+}
+
+.attempt.ok { border-left-color: var(--ok); }
+.attempt.bad { border-left-color: var(--bad); }
+.attempt .code { font-weight: 600; }
+.attempt-error { color: var(--bad); }
+.attempt details { flex-basis: 100%; }
+.attempt summary { color: var(--ink-dim); cursor: pointer; }
+
+.payload {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .8rem;
+  margin: 0;
+  overflow-x: auto;
+  font-size: .85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.payload.small { font-size: .78rem; margin-top: .35rem; }
+
+@media (max-width: 40rem) {
+  main { padding: 1.25rem 1rem 3rem; }
+  .truncate { max-width: 100%; white-space: normal; }
+  .grid.kv th { width: auto; }
+}

@@ -1,0 +1,48 @@
+<% content_for :title, "Event ##{@event.id} — Hookrelay" %>
+<%# Attempts append themselves under their delivery as the workers make them. %>
+<%= turbo_stream_from @event %>
+
+<nav class="crumbs">
+  <%= link_to "Sources", root_path %> /
+  <%= link_to @event.source.name.presence || "source ##{@event.source_id}", source_path(@event.source) %> /
+  event #<%= @event.id %>
+</nav>
+
+<h1>Event #<%= @event.id %></h1>
+<p class="meta">
+  <%= @event.http_method %>
+  <% if @event.content_type.present? %> · <%= @event.content_type %><% end %>
+  · <%= number_to_human_size(@event.body.to_s.bytesize) %>
+  · received <%= timestamp(@event.created_at) %> UTC
+</p>
+
+<section>
+  <h2>Headers</h2>
+  <table class="grid kv">
+    <tbody>
+      <% @event.display_headers.sort.each do |name, value| %>
+        <tr>
+          <th><%= name %></th>
+          <td><code><%= value %></code></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Body</h2>
+  <% if @event.body.present? %>
+    <pre class="payload"><%= payload_body(@event) %></pre>
+  <% else %>
+    <p class="empty">Empty body.</p>
+  <% end %>
+</section>
+
+<section>
+  <h2>Deliveries</h2>
+  <div id="deliveries" class="cards">
+    <%= render partial: "deliveries/delivery", collection: @event.deliveries %>
+    <p class="empty">No deliveries — this source has no destinations.</p>
+  </div>
+</section>

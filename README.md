@@ -51,8 +51,24 @@ curl -i -X POST http://localhost:3000/in/<token> \
 The event is stored with its method, headers, and body — bytes exactly as they
 arrived, so gzipped and protobuf payloads survive as well as JSON. Give the
 source a destination (`source.destinations.create!(url: "https://…")` in
-`rails c`) and each event is delivered to it, recording every attempt (a live
-inspector comes next).
+`rails c`) and each event is delivered to it, recording every attempt.
+
+## The inspector
+
+Open <http://localhost:3000> for the dashboard: sources and their ingest URLs,
+then each source's events, then everything about one event — its headers (with
+credentials masked), its body (JSON pretty-printed, non-text payloads shown
+safely), and every delivery with each attempt's status, duration and response.
+Events and attempts arrive over Turbo Streams, so a page left open fills in as
+webhooks land.
+
+Accounts arrive in M7. Until then, a deployment that is reachable can put a
+password in front of the inspector — set both and every inspector page asks for
+it, while the ingest endpoint stays open:
+
+```bash
+HOOKRELAY_INSPECTOR_USER=you HOOKRELAY_INSPECTOR_PASSWORD=secret
+```
 
 ## How delivery behaves
 
@@ -77,7 +93,7 @@ inspector comes next).
 - [x] **M1** Ingest — `POST /in/:token` persists an event and returns `202`
 - [x] **M2** Deliver — a job forwards each event to its destination, recording every attempt
 - [x] **M3** Retries — exponential backoff + jitter, max attempts, dead-letter
-- [ ] **M4** Inspector UI — a Hotwire dashboard; attempts stream in live
+- [x] **M4** Inspector UI — a Hotwire dashboard; attempts stream in live
 - [ ] **M5** Replay — re-deliver an event from the UI and API
 - [ ] **M6** Signatures — verify inbound provider HMAC, sign outbound
 - [ ] **M7** Multi-tenant accounts + API keys

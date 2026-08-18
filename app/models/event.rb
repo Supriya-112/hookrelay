@@ -7,6 +7,11 @@ class Event < ApplicationRecord
   # inspector would then hold the sender's key.
   REDACTED_HEADERS = %w[Authorization Proxy-Authorization Cookie X-Api-Key X-Auth-Token].freeze
 
+  # A source's page watches its stream, so a webhook that arrives while someone is
+  # looking at it appears without a refresh. Rendering happens in a job to keep it
+  # off the ingest request, which providers time out.
+  after_create_commit -> { broadcast_prepend_later_to source, target: "events", partial: "events/event", locals: { event: self } }
+
   # The body is stored as bytes, so it comes back binary and may not be text at
   # all. Anything shown to a human goes through here: undecodable bytes become
   # replacement characters instead of breaking the view or the JSON encoder.

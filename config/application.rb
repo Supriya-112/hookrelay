@@ -29,5 +29,14 @@ module Hookrelay
     # so docker-compose.yml opts out; anything reachable from the internet should
     # not.
     config.x.hookrelay.allow_private_destinations = ENV["HOOKRELAY_ALLOW_PRIVATE_DESTINATIONS"] == "true"
+
+    # Optional password on the inspector pages until accounts arrive: set both
+    # variables to switch it on. See InspectorController.
+    if ENV["HOOKRELAY_INSPECTOR_USER"].present? && ENV["HOOKRELAY_INSPECTOR_PASSWORD"].present?
+      config.x.hookrelay.inspector_credentials = {
+        user: ENV["HOOKRELAY_INSPECTOR_USER"],
+        password: ENV["HOOKRELAY_INSPECTOR_PASSWORD"]
+      }
+    end
   end
 end

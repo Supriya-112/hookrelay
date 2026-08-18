@@ -1,0 +1,34 @@
+<% content_for :title, "#{@source.name} — Hookrelay" %>
+<%# Events arriving at this source appear in the list below without a refresh. %>
+<%= turbo_stream_from @source %>
+
+<nav class="crumbs"><%= link_to "Sources", root_path %> / <%= @source.name.presence || "source ##{@source.id}" %></nav>
+
+<h1><%= @source.name.presence || "source ##{@source.id}" %></h1>
+<p class="meta">Ingest URL <code><%= ingest_url(@source.token) %></code></p>
+
+<section>
+  <h2>Destinations</h2>
+  <% if @destinations.any? %>
+    <ul class="plain">
+      <% @destinations.each do |destination| %>
+        <li><code><%= destination.url %></code><%= " — #{destination.name}" if destination.name.present? %></li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="empty">
+      Nothing to deliver to yet. Add a destination in a console:
+      <br>
+      <code>Source.find(<%= @source.id %>).destinations.create!(url: "https://…")</code>
+    </p>
+  <% end %>
+</section>
+
+<section>
+  <h2>Events <span class="dim">(latest <%= SourcesController::RECENT_EVENTS %>)</span></h2>
+  <div id="events" class="cards">
+    <%= render partial: "events/event", collection: @events %>
+    <%# Stays put when Turbo prepends an event; the CSS hides it once it has company. %>
+    <p class="empty">No events received yet. POST one to the ingest URL above.</p>
+  </div>
+</section>

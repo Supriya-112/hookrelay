@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_17_093000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_18_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -56,6 +56,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_093000) do
     t.string "http_method", null: false
     t.bigint "source_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["source_id", "created_at"], name: "index_events_on_source_id_and_created_at"
     t.index ["source_id"], name: "index_events_on_source_id"
   end
 

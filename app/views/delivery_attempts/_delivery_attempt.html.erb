@@ -1,0 +1,16 @@
+<div class="attempt <%= delivery_attempt.ok? ? "ok" : "bad" %>">
+  <span class="code"><%= delivery_attempt.status_code || "no response" %></span>
+  <span class="dim"><%= timestamp(delivery_attempt.created_at, format: "%H:%M:%S") %></span>
+  <% if delivery_attempt.duration_ms.present? %>
+    <span class="dim"><%= delivery_attempt.duration_ms %> ms</span>
+  <% end %>
+  <% if delivery_attempt.error.present? %>
+    <span class="attempt-error"><%= delivery_attempt.error %></span>
+  <% end %>
+  <% if delivery_attempt.response_body.present? %>
+    <details>
+      <summary>response</summary>
+      <pre class="payload small"><%= delivery_attempt.response_body %></pre>
+    </details>
+  <% end %>
+</div>

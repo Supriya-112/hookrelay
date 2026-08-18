@@ -14,6 +14,17 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
+    # Runs the block with the inspector behind a password, as a deployment that
+    # sets HOOKRELAY_INSPECTOR_USER and _PASSWORD has it.
+    def with_inspector_password(user: "watcher", password: "s3cret")
+      hookrelay = Rails.configuration.x.hookrelay
+      was = hookrelay.inspector_credentials
+      hookrelay.inspector_credentials = { user: user, password: password }
+      yield user, password
+    ensure
+      hookrelay.inspector_credentials = was
+    end
+
     # Runs the block with DestinationGuard enforcing, the way any deployment other
     # than local development has it.
     def with_private_destinations_refused

@@ -1,0 +1,32 @@
+<% content_for :title, "Sources — Hookrelay" %>
+
+<h1>Sources</h1>
+
+<% if @sources.any? %>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Ingest URL</th>
+        <th class="num">Events</th>
+        <th>Last received</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @sources.each do |source| %>
+        <tr>
+          <td><%= link_to source.name.presence || "source ##{source.id}", source_path(source) %></td>
+          <td><code><%= ingest_url(source.token) %></code></td>
+          <td class="num"><%= @event_counts.fetch(source.id, 0) %></td>
+          <td><%= received_at(@last_received[source.id]) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="empty">
+    No sources yet. Create one from a console — <code>docker compose run --rm web bin/rails c</code>:
+    <br>
+    <code>Source.create!(name: "demo")</code>
+  </p>
+<% end %>

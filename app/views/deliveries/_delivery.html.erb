@@ -1,0 +1,20 @@
+<article class="card" id="<%= delivery.row_dom_id %>">
+  <div class="card-head">
+    <span class="card-title truncate"><%= delivery.destination.url %></span>
+    <%= status_pill(delivery.status) %>
+  </div>
+
+  <p class="meta">
+    <%= pluralize(delivery.attempts_count, "attempt") %>
+    <% if delivery.failed? && delivery.next_attempt_at.present? %>
+      · next try <%= received_at(delivery.next_attempt_at) %>
+    <% end %>
+  </p>
+
+  <div id="<%= delivery.attempts_dom_id %>" class="attempts">
+    <%# Sorted in Ruby: the association is already loaded, and ordering in SQL here
+        would query once per delivery. %>
+    <%= render partial: "delivery_attempts/delivery_attempt",
+               collection: delivery.delivery_attempts.sort_by(&:created_at) %>
+  </div>
+</article>
