@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_18_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_19_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,6 +20,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_18_090000) do
     t.bigint "destination_id", null: false
     t.bigint "event_id", null: false
     t.datetime "next_attempt_at"
+    t.datetime "replayed_at"
     t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
     t.index ["destination_id"], name: "index_deliveries_on_destination_id"
@@ -42,6 +43,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_18_090000) do
   create_table "destinations", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name"
+    t.string "signing_secret"
     t.bigint "source_id", null: false
     t.datetime "updated_at", null: false
     t.string "url", null: false
@@ -63,6 +65,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_18_090000) do
   create_table "sources", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name"
+    t.string "signature_scheme"
+    t.string "signing_secret"
     t.string "token", null: false
     t.datetime "updated_at", null: false
     t.index ["token"], name: "index_sources_on_token", unique: true

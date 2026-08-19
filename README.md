@@ -70,6 +70,64 @@ it, while the ingest endpoint stays open:
 HOOKRELAY_INSPECTOR_USER=you HOOKRELAY_INSPECTOR_PASSWORD=secret
 ```
 
+## Signatures
+
+**Inbound.** Tell a source how its provider signs and give it the secret that
+provider was issued, and every request is checked before anything is stored:
+
+```ruby
+Source.create!(name: "GitHub", signature_scheme: "github",
+               signing_secret: ENV["GITHUB_WEBHOOK_SECRET"])
+```
+
+`github` expects `X-Hub-Signature-256`, `stripe` expects `Stripe-Signature` —
+whose timestamp has to be within five minutes, so an intercepted request can't be
+sent again later. Whatever fails the check gets `401` and is not recorded: it
+can't be attributed to the provider, and storing it would let anyone who learns
+the URL fill the inspector. A source with no scheme accepts what reaches its URL.
+
+**Outbound.** Every destination gets a secret of its own, and each delivery
+carries the HMAC-SHA256 of `"<timestamp>.<body>"`:
+
+```
+X-Hookrelay-Signature: t=1755600000,v1=4fe215412bcaaace…
+```
+
+Checking it at the receiving end is a few lines — the secret is shown on the
+source's page in the inspector:
+
+```ruby
+timestamp, signature = request.headers["X-Hookrelay-Signature"].split(",").map { |part| part.split("=", 2).last }
+expected = OpenSSL::HMAC.hexdigest("SHA256", ENV["HOOKRELAY_SECRET"], "#{timestamp}.#{request.raw_post}")
+
+head :unauthorized unless (Time.now.to_i - timestamp.to_i).abs < 300 &&
+  ActiveSupport::SecurityUtils.secure_compare(signature, expected)
+```
+
+Secrets are held in plain columns for now. Encrypting them at rest belongs with
+the account work in M7, since it needs an encryption key wherever the tests run
+as well as in the deploy.
+
+## Replay
+
+Send a received event again — all of it, or one destination's delivery — from the
+inspector's buttons or over HTTP:
+
+```bash
+curl -X POST -H 'Accept: application/json' http://localhost:3000/events/13/replay
+# => 202 {"event_id":13,"destinations":2,"deliveries_reset":2}
+
+curl -X POST -H 'Accept: application/json' http://localhost:3000/deliveries/8/replay
+# => 202 {"delivery_id":8,"status":"pending"}
+```
+
+A replay reuses the delivery rather than copying it: the attempts already on it
+stay as history, while the retry budget starts over — so a dead-lettered delivery
+gets its five tries again, and the inspector shows both runs. A delivery a worker
+is currently holding is left alone (`409`), since it is already on its way.
+Replaying an event also covers destinations added since it arrived. Both
+endpoints sit behind the inspector password when one is set.
+
 ## How delivery behaves
 
 - **One POST per delivery.** A worker claims a delivery before sending it, so a
@@ -94,8 +152,8 @@ HOOKRELAY_INSPECTOR_USER=you HOOKRELAY_INSPECTOR_PASSWORD=secret
 - [x] **M2** Deliver — a job forwards each event to its destination, recording every attempt
 - [x] **M3** Retries — exponential backoff + jitter, max attempts, dead-letter
 - [x] **M4** Inspector UI — a Hotwire dashboard; attempts stream in live
-- [ ] **M5** Replay — re-deliver an event from the UI and API
-- [ ] **M6** Signatures — verify inbound provider HMAC, sign outbound
+- [x] **M5** Replay — re-deliver an event from the UI and API
+- [x] **M6** Signatures — verify inbound provider HMAC, sign outbound
 - [ ] **M7** Multi-tenant accounts + API keys
 - [ ] **M8** Idempotency keys + rate limiting
 - [ ] **M9** Observability — per-destination success rate, latency, retries

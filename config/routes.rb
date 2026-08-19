@@ -13,6 +13,11 @@ Rails.application.routes.draw do
   resources :sources, only: [ :index, :show ]
   resources :events, only: [ :show ]
 
+  # Send an event again — the whole event, or one destination's delivery. Both
+  # answer HTML for the inspector's buttons and JSON for scripts.
+  post "events/:id/replay" => "replays#event", as: :replay_event
+  post "deliveries/:id/replay" => "replays#delivery", as: :replay_delivery
+
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker

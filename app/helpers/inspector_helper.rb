@@ -4,10 +4,13 @@ module InspectorHelper
     tag.span status, class: "pill pill-#{status}"
   end
 
-  def received_at(time)
+  # "3 minutes ago" for something that happened, "in 3 minutes" for a retry that
+  # is still due — time_ago_in_words gives the same words for both.
+  def relative_time(time)
     return tag.span("never", class: "dim") if time.blank?
 
-    tag.time "#{time_ago_in_words(time)} ago", datetime: time.iso8601, title: time.utc.to_s
+    words = time_ago_in_words(time)
+    tag.time (time.future? ? "in #{words}" : "#{words} ago"), datetime: time.iso8601, title: "#{time.utc} UTC"
   end
 
   def timestamp(time, format: "%Y-%m-%d %H:%M:%S")

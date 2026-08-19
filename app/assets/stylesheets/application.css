@@ -116,6 +116,38 @@ code {
 .grid tbody tr:last-child th, .grid tbody tr:last-child td { border-bottom: 0; }
 .grid.kv th { width: 16rem; font-weight: 550; color: var(--ink-dim); }
 
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.section-head h2 { margin-bottom: 0; }
+
+.flash {
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .6rem .8rem;
+  margin: 0 0 1.25rem;
+  font-size: .9rem;
+}
+
+.btn {
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 550;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .25rem .7rem;
+  cursor: pointer;
+}
+
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-small { font-size: .78rem; padding: .1rem .5rem; }
+
+/* button_to wraps its button in a form, which would otherwise take a whole line
+   of a flex row to itself. */
+.card-head form, .section-head form { margin: 0; display: contents; }
+
 .plain { list-style: none; margin: 0; padding: 0; }
 .plain li + li { margin-top: .35rem; }
 

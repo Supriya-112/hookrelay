@@ -33,6 +33,28 @@ class Delivery < ApplicationRecord
         .update_all(status: self.class.statuses[:delivering], updated_at: Time.current) == 1
   end
 
+  # Sends this delivery again from the top: a fresh retry budget, queued straight
+  # away. Returns false for a delivery a worker is already holding — it is on its
+  # way, and resetting it would race whoever has it.
+  def replay
+    return false if delivering?
+
+    reset_for_replay!
+    DeliveryJob.perform_later(self)
+    true
+  end
+
+  # Clears the outcome of the last run without touching its attempts, which stay
+  # as the record of what happened. Event#replay uses this to reset a whole event
+  # before one fan-out queues the work.
+  def reset_for_replay!
+    update!(status: :pending, attempts_count: 0, next_attempt_at: nil, replayed_at: Time.current)
+  end
+
+  def replayed?
+    replayed_at.present?
+  end
+
   # The elements the inspector renders for this delivery. Broadcasts have to name
   # the same ids the page did, so both come from here.
   def row_dom_id

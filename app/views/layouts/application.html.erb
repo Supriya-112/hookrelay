@@ -30,6 +30,10 @@
     </header>
 
     <main>
+      <% if notice.present? %>
+        <p class="flash"><%= notice %></p>
+      <% end %>
+
       <%= yield %>
     </main>
   </body>

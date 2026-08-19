@@ -1,4 +1,8 @@
 class Destination < ApplicationRecord
+  # Every destination gets a secret of its own, so deliveries are signed from the
+  # start and the receiver has something to check them against.
+  has_secure_token :signing_secret, length: 32
+
   belongs_to :source
   has_many :deliveries, dependent: :destroy
 

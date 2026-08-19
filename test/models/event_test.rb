@@ -1,6 +1,8 @@
 require "test_helper"
 
 class EventTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   test "requires a source" do
     assert_not Event.new(http_method: "POST").valid?
   end
@@ -27,6 +29,35 @@ class EventTest < ActiveSupport::TestCase
     assert event.body_text.valid_encoding?
     assert_equal Encoding::UTF_8, event.body_text.encoding
     assert event.body_text.start_with?("ok ")
+  end
+
+  test "replaying resets every delivery and fans the event out again" do
+    source = Source.create!(name: "GitHub")
+    event = source.events.create!(http_method: "POST", headers: {}, body: "{}")
+    resolved = Delivery.create!(event: event, destination: source.destinations.create!(url: "https://a.example.com/hook"))
+    resolved.update!(status: :succeeded, attempts_count: 1)
+
+    reset = nil
+    assert_enqueued_with job: DeliverEventJob, args: [ event ] do
+      reset = event.replay
+    end
+
+    assert_equal [ resolved ], reset
+    assert resolved.reload.pending?
+    assert_equal 0, resolved.attempts_count
+  end
+
+  test "replaying skips a delivery a worker is holding but still fans out" do
+    source = Source.create!(name: "GitHub")
+    event = source.events.create!(http_method: "POST", headers: {}, body: "{}")
+    in_flight = Delivery.create!(event: event, destination: source.destinations.create!(url: "https://a.example.com/hook"))
+    in_flight.claim
+
+    assert_enqueued_with job: DeliverEventJob, args: [ event ] do
+      assert_empty event.reload.replay
+    end
+
+    assert_equal "delivering", in_flight.reload.status
   end
 
   test "display_headers masks credentials and keeps everything else" do

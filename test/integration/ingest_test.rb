@@ -51,6 +51,43 @@ class IngestTest < ActionDispatch::IntegrationTest
     assert_response :accepted
   end
 
+  test "a source that verifies signatures stores a correctly signed webhook" do
+    source = Source.create!(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
+    payload = '{"event":"push"}'
+
+    assert_difference -> { source.events.count }, 1 do
+      post ingest_path(source.token), params: payload, headers: {
+        "Content-Type" => "application/json",
+        "X-Hub-Signature-256" => "sha256=#{OpenSSL::HMAC.hexdigest("SHA256", "whsec_1", payload)}"
+      }
+    end
+
+    assert_response :accepted
+  end
+
+  test "a wrongly signed webhook is refused and stores nothing" do
+    source = Source.create!(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
+
+    assert_no_difference -> { Event.count } do
+      post ingest_path(source.token), params: '{"event":"push"}', headers: {
+        "Content-Type" => "application/json",
+        "X-Hub-Signature-256" => "sha256=#{"0" * 64}"
+      }
+    end
+
+    assert_response :unauthorized
+  end
+
+  test "an unsigned webhook is refused when the source expects signatures" do
+    source = Source.create!(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
+
+    assert_no_difference -> { Event.count } do
+      post ingest_path(source.token), params: "{}", headers: { "Content-Type" => "application/json" }
+    end
+
+    assert_response :unauthorized
+  end
+
   test "an unknown token is rejected and stores nothing" do
     assert_no_difference -> { Event.count } do
       post "/in/does-not-exist", params: "x"

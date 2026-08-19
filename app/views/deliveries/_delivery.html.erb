@@ -2,12 +2,16 @@
   <div class="card-head">
     <span class="card-title truncate"><%= delivery.destination.url %></span>
     <%= status_pill(delivery.status) %>
+    <%= button_to "Replay", replay_delivery_path(delivery), class: "btn btn-small" %>
   </div>
 
   <p class="meta">
     <%= pluralize(delivery.attempts_count, "attempt") %>
+    <% if delivery.replayed? %>
+      · replayed <%= relative_time(delivery.replayed_at) %>
+    <% end %>
     <% if delivery.failed? && delivery.next_attempt_at.present? %>
-      · next try <%= received_at(delivery.next_attempt_at) %>
+      · next try <%= relative_time(delivery.next_attempt_at) %>
     <% end %>
   </p>
 

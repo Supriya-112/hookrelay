@@ -48,6 +48,23 @@ class DeliveryJobTest < ActiveJob::TestCase
     assert_requested stub
   end
 
+  test "signs the delivery with the destination's secret" do
+    delivery = build_delivery("https://ok.example.com/hook")
+    secret = delivery.destination.signing_secret
+    signature = nil
+    stub_request(:post, "https://ok.example.com/hook")
+      .with { |request| signature = request.headers[OutboundSignature::HEADER]; true }
+      .to_return(status: 200)
+
+    DeliveryJob.perform_now(delivery)
+
+    assert signature.present?, "the delivery should carry a signature header"
+    timestamp = signature[/\At=(\d+)/, 1]
+    expected = OpenSSL::HMAC.hexdigest("SHA256", secret, "#{timestamp}.#{delivery.event.body}")
+    assert_equal "t=#{timestamp},v1=#{expected}", signature
+    assert_in_delta Time.current.to_i, timestamp.to_i, 5
+  end
+
   test "reschedules a later attempt when the delivery fails" do
     delivery = build_delivery("https://bad.example.com/hook")
     stub_request(:post, "https://bad.example.com/hook").to_return(status: 500)
@@ -65,6 +82,7 @@ class DeliveryJobTest < ActiveJob::TestCase
   test "dead-letters after the maximum number of attempts" do
     delivery = build_delivery("https://bad.example.com/hook")
     (DeliveryJob::MAX_ATTEMPTS - 1).times { delivery.delivery_attempts.create!(status_code: 500) }
+    delivery.update!(status: :failed, attempts_count: DeliveryJob::MAX_ATTEMPTS - 1)
     stub_request(:post, "https://bad.example.com/hook").to_return(status: 500)
 
     assert_no_enqueued_jobs only: DeliveryJob do
@@ -120,6 +138,21 @@ class DeliveryJobTest < ActiveJob::TestCase
     assert_no_difference -> { delivery.delivery_attempts.count } do
       DeliveryJob.perform_now(delivery)
     end
+  end
+
+  test "a replayed delivery starts its budget again and keeps its old attempts" do
+    delivery = build_delivery("https://bad.example.com/hook")
+    DeliveryJob::MAX_ATTEMPTS.times { delivery.delivery_attempts.create!(status_code: 500) }
+    delivery.update!(status: :dead, attempts_count: DeliveryJob::MAX_ATTEMPTS)
+    stub_request(:post, "https://bad.example.com/hook").to_return(status: 500)
+
+    delivery.replay
+    perform_enqueued_jobs only: DeliveryJob
+
+    delivery.reload
+    assert delivery.failed?, "a replay should try again rather than stay dead"
+    assert_equal 1, delivery.attempts_count
+    assert_equal DeliveryJob::MAX_ATTEMPTS + 1, delivery.delivery_attempts.count, "earlier attempts are history"
   end
 
   test "retry_delay grows with the attempt and stays within bounds" do

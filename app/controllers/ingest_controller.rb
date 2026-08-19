@@ -13,6 +13,7 @@ class IngestController < ApplicationController
   def create
     source = Source.find_by(token: params[:token])
     return head :not_found unless source
+    return head :unauthorized unless signature_accepted?(source)
 
     event = source.events.create!(
       http_method: request.request_method,
@@ -25,6 +26,16 @@ class IngestController < ApplicationController
   end
 
   private
+
+  # A source with no scheme configured takes whatever reaches its URL; one that
+  # expects signatures takes only what carries a valid one. A request that fails
+  # the check is not stored — we can't say the provider sent it, and storing it
+  # would let anyone who knows the URL fill the inspector.
+  def signature_accepted?(source)
+    return true unless source.verifies_signatures?
+
+    InboundSignature.valid?(source, body: request.raw_post, headers: request.headers)
+  end
 
   # The sender's HTTP headers, pulled out of the Rack env (where they arrive as
   # HTTP_* keys) and turned back into their wire names, so we keep what was sent

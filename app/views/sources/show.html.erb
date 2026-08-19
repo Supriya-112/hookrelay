@@ -5,14 +5,33 @@
 <nav class="crumbs"><%= link_to "Sources", root_path %> / <%= @source.name.presence || "source ##{@source.id}" %></nav>
 
 <h1><%= @source.name.presence || "source ##{@source.id}" %></h1>
-<p class="meta">Ingest URL <code><%= ingest_url(@source.token) %></code></p>
+<p class="meta">
+  Ingest URL <code><%= ingest_url(@source.token) %></code>
+  ·
+  <% if @source.verifies_signatures? %>
+    verifying <%= @source.signature_scheme.capitalize %> signatures
+  <% else %>
+    accepting unsigned requests
+  <% end %>
+</p>
 
 <section>
   <h2>Destinations</h2>
   <% if @destinations.any? %>
     <ul class="plain">
       <% @destinations.each do |destination| %>
-        <li><code><%= destination.url %></code><%= " — #{destination.name}" if destination.name.present? %></li>
+        <li>
+          <code><%= destination.url %></code><%= " — #{destination.name}" if destination.name.present? %>
+          <% if destination.signing_secret.present? %>
+            <details>
+              <summary class="dim">signing secret</summary>
+              <p class="meta">
+                Deliveries carry <code><%= OutboundSignature::HEADER %></code>, signed with
+                <code><%= destination.signing_secret %></code>.
+              </p>
+            </details>
+          <% end %>
+        </li>
       <% end %>
     </ul>
   <% else %>

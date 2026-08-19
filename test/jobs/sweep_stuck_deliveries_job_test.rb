@@ -29,6 +29,7 @@ class SweepStuckDeliveriesJobTest < ActiveJob::TestCase
   test "dead-letters an abandoned claim that has used up its attempts" do
     delivery = build_delivery
     (DeliveryJob::MAX_ATTEMPTS - 1).times { delivery.delivery_attempts.create!(status_code: 500) }
+    delivery.update!(attempts_count: DeliveryJob::MAX_ATTEMPTS - 1)
     stall(delivery)
 
     assert_no_enqueued_jobs only: DeliveryJob do

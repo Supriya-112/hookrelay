@@ -40,7 +40,13 @@
 </section>
 
 <section>
-  <h2>Deliveries</h2>
+  <div class="section-head">
+    <h2>Deliveries</h2>
+    <% if @event.source.destinations.exists? %>
+      <%= button_to "Replay event", replay_event_path(@event), class: "btn" %>
+    <% end %>
+  </div>
+
   <div id="deliveries" class="cards">
     <%= render partial: "deliveries/delivery", collection: @event.deliveries %>
     <p class="empty">No deliveries — this source has no destinations.</p>

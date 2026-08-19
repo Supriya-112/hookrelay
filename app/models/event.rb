@@ -12,6 +12,18 @@ class Event < ApplicationRecord
   # off the ingest request, which providers time out.
   after_create_commit -> { broadcast_prepend_later_to source, target: "events", partial: "events/event", locals: { event: self } }
 
+  # Sends this event again to every destination its source has now. Deliveries
+  # that already exist start over; a destination added since the event arrived
+  # gets its first delivery from the fan-out, which also queues the work — so a
+  # delivery is never handed two jobs for the same replay. Returns the deliveries
+  # that were reset, skipping any a worker is currently holding.
+  def replay
+    reset = deliveries.reject(&:delivering?)
+    reset.each(&:reset_for_replay!)
+    DeliverEventJob.perform_later(self)
+    reset
+  end
+
   # The body is stored as bytes, so it comes back binary and may not be text at
   # all. Anything shown to a human goes through here: undecodable bytes become
   # replacement characters instead of breaking the view or the JSON encoder.

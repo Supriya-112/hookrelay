@@ -20,10 +20,7 @@ class DeliveryJob < ApplicationJob
       delivery.destination.url,
       body: event.body,
       content_type: event.content_type,
-      headers: {
-        "X-Hookrelay-Event" => event.id.to_s,
-        "X-Hookrelay-Delivery" => delivery.id.to_s
-      }
+      headers: headers_for(delivery, event)
     )
 
     delay = self.class.record_outcome(delivery, result)
@@ -41,7 +38,10 @@ class DeliveryJob < ApplicationJob
       duration_ms: result.duration_ms,
       error: result.error
     )
-    attempts = delivery.delivery_attempts.count
+    # Counted from the delivery rather than from its attempt rows: a replay leaves
+    # earlier attempts in place as history but starts the budget again, so the
+    # rows and the budget are no longer the same number.
+    attempts = delivery.attempts_count + 1
 
     if result.success?
       delivery.update!(status: :succeeded, attempts_count: attempts, next_attempt_at: nil)
@@ -61,5 +61,24 @@ class DeliveryJob < ApplicationJob
   def self.retry_delay(attempt)
     capped = [ 5 * (2**(attempt - 1)), 3600 ].min
     (capped / 2.0 + rand * (capped / 2.0)).round.seconds
+  end
+
+  private
+
+  # Which event this is and which delivery, so a receiver can recognise a retry of
+  # something it has already seen, plus a signature made with the destination's own
+  # secret so it can tell a real delivery from anything else that finds the URL.
+  def headers_for(delivery, event)
+    headers = {
+      "X-Hookrelay-Event" => event.id.to_s,
+      "X-Hookrelay-Delivery" => delivery.id.to_s
+    }
+
+    secret = delivery.destination.signing_secret
+    if secret.present?
+      headers[OutboundSignature::HEADER] = OutboundSignature.header_value(secret: secret, body: event.body.to_s)
+    end
+
+    headers
   end
 end
