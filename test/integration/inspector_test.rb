@@ -1,10 +1,12 @@
 require "test_helper"
 
 class InspectorTest < ActionDispatch::IntegrationTest
+  setup { @account = sign_in_new_account }
+
   include ActiveJob::TestHelper
   include ActionCable::TestHelper
   test "the source list shows each source with its ingest URL and event count" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(account: @account, name: "GitHub")
     source.events.create!(http_method: "POST", headers: {}, body: "{}")
 
     get root_path
@@ -24,7 +26,7 @@ class InspectorTest < ActionDispatch::IntegrationTest
   end
 
   test "a source page lists its destinations and events and subscribes to its stream" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(account: @account, name: "GitHub")
     source.destinations.create!(url: "https://example.com/hook")
     event = source.events.create!(http_method: "POST", content_type: "application/json", headers: {}, body: "{}")
 
@@ -83,7 +85,7 @@ class InspectorTest < ActionDispatch::IntegrationTest
   end
 
   test "a received event is broadcast to the source's stream" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(account: @account, name: "GitHub")
 
     assert_enqueued_jobs 1, only: Turbo::Streams::ActionBroadcastJob do
       source.events.create!(http_method: "POST", headers: {}, body: "{}")
@@ -91,7 +93,7 @@ class InspectorTest < ActionDispatch::IntegrationTest
   end
 
   test "the broadcast carries the rendered event, ready to prepend" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(account: @account, name: "GitHub")
     get source_path(source)
     stream = stream_subscribed_on_page
 
@@ -121,32 +123,42 @@ class InspectorTest < ActionDispatch::IntegrationTest
     assert broadcasts.any? { |message| message.include?(%(action="append" target="#{delivery.attempts_dom_id}")) }
   end
 
-  test "inspector pages ask for a password when one is configured" do
-    with_inspector_password do |user, password|
-      get root_path
-      assert_response :unauthorized
+  test "the inspector is only for people who are signed in" do
+    source = create_source(account: @account, name: "GitHub")
+    sign_out
 
-      get root_path, headers: { "HTTP_AUTHORIZATION" => ActionController::HttpAuthentication::Basic.encode_credentials(user, password) }
-      assert_response :success
-    end
+    get root_path
+    assert_redirected_to new_session_path
+
+    get source_path(source)
+    assert_redirected_to new_session_path
   end
 
-  test "a wrong password is refused" do
-    with_inspector_password do |user, _password|
-      get root_path, headers: { "HTTP_AUTHORIZATION" => ActionController::HttpAuthentication::Basic.encode_credentials(user, "wrong") }
+  test "signing in comes back to the page that was asked for" do
+    source = create_source(account: @account, name: "GitHub")
+    user = @account.users.sole
+    sign_out
 
-      assert_response :unauthorized
-    end
+    get source_path(source)
+    post session_path, params: { email_address: user.email_address, password: "password" }
+
+    assert_redirected_to source_url(source)
   end
 
-  test "ingest stays open when the inspector is behind a password" do
-    source = Source.create!(name: "GitHub")
+  test "ingest stays open to providers, who have nothing to sign in with" do
+    source = create_source(account: @account, name: "GitHub")
+    sign_out
 
-    with_inspector_password do
-      post ingest_path(source.token), params: "{}", headers: { "Content-Type" => "application/json" }
-    end
+    post ingest_path(source.token), params: "{}", headers: { "Content-Type" => "application/json" }
 
     assert_response :accepted
+  end
+
+  test "the topbar offers a way out and to the keys" do
+    get root_path
+
+    assert_select "form[action=?]", session_path
+    assert_select "a[href=?]", api_keys_path
   end
 
   test "the inspector asks for a modern browser" do
@@ -167,7 +179,7 @@ class InspectorTest < ActionDispatch::IntegrationTest
   end
 
   def build_event(headers: {}, content_type: "application/json", body: "{}")
-    Source.create!(name: "GitHub").events.create!(
+    create_source(account: @account, name: "GitHub").events.create!(
       http_method: "POST", content_type: content_type, headers: headers, body: body
     )
   end

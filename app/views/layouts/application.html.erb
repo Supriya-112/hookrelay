@@ -27,11 +27,24 @@
     <header class="topbar">
       <%= link_to "Hookrelay", root_path, class: "brand" %>
       <span class="dim">webhook gateway</span>
+
+      <% if Current.account %>
+        <nav class="topbar-end">
+          <span class="dim"><%= Current.account.name %></span>
+          <%= link_to "API keys", api_keys_path %>
+          <%= button_to "Sign out", session_path, method: :delete, class: "btn btn-small" %>
+        </nav>
+      <% end %>
     </header>
 
     <main>
+      <%# Both kinds of message render the same way; the generated auth views send
+          alerts, the inspector sends notices. %>
+      <% if alert.present? %>
+        <div class="flash flash-alert"><%= alert %></div>
+      <% end %>
       <% if notice.present? %>
-        <p class="flash"><%= notice %></p>
+        <div class="flash"><%= notice %></div>
       <% end %>
 
       <%= yield %>

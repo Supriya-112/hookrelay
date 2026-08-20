@@ -62,13 +62,38 @@ safely), and every delivery with each attempt's status, duration and response.
 Events and attempts arrive over Turbo Streams, so a page left open fills in as
 webhooks land.
 
-Accounts arrive in M7. Until then, a deployment that is reachable can put a
-password in front of the inspector — set both and every inspector page asks for
-it, while the ingest endpoint stays open:
+## Accounts
+
+Everything belongs to an account: its sources, and through them the events and
+deliveries that follow. One account can't see another's — asking for someone
+else's event gets the same answer as asking for one that never existed.
+
+The first visit to a new install offers a setup form, which creates the account
+and its first user; after that the form is closed, and anyone else who needs
+access is added from a console:
+
+```ruby
+Account.first.users.create!(email_address: "them@example.com", password: "…")
+```
+
+Ingest is the one thing outside all this. A provider has no account and nothing
+to sign in with, so `POST /in/:token` stays open — the token identifies the
+source and a signature vouches for the request.
+
+### API keys
+
+The replay endpoints also take a key, so scripts don't need a browser session.
+Create one on the API keys page — it's shown once, and only its digest is stored —
+then send it as a bearer token:
 
 ```bash
-HOOKRELAY_INSPECTOR_USER=you HOOKRELAY_INSPECTOR_PASSWORD=secret
+curl -X POST -H 'Accept: application/json' \
+  -H "Authorization: Bearer $HOOKRELAY_API_KEY" \
+  https://hookrelay.example.com/events/13/replay
 ```
+
+A key only reaches its own account's events, and its last use is recorded so a
+forgotten one can be spotted and revoked.
 
 ## Signatures
 
@@ -104,9 +129,14 @@ head :unauthorized unless (Time.now.to_i - timestamp.to_i).abs < 300 &&
   ActiveSupport::SecurityUtils.secure_compare(signature, expected)
 ```
 
-Secrets are held in plain columns for now. Encrypting them at rest belongs with
-the account work in M7, since it needs an encryption key wherever the tests run
-as well as in the deploy.
+Both kinds of secret are encrypted at rest, so a database dump doesn't hand over
+the means to forge webhooks. The keys come from the environment —
+`AR_ENCRYPTION_PRIMARY_KEY`, `AR_ENCRYPTION_DETERMINISTIC_KEY` and
+`AR_ENCRYPTION_KEY_DERIVATION_SALT`. `docker-compose.yml` and the CI workflow set
+throwaway ones, which is why neither development nor the test suite needs any
+setup; a deployment makes its own with `bin/rails db:encryption:init` and keeps
+them with the rest of its secrets. Losing them means losing every stored secret,
+and running outside Docker means setting them yourself.
 
 ## Replay
 
@@ -126,7 +156,7 @@ stay as history, while the retry budget starts over — so a dead-lettered deliv
 gets its five tries again, and the inspector shows both runs. A delivery a worker
 is currently holding is left alone (`409`), since it is already on its way.
 Replaying an event also covers destinations added since it arrived. Both
-endpoints sit behind the inspector password when one is set.
+endpoints need either a signed-in session or an API key.
 
 ## How delivery behaves
 
@@ -154,7 +184,7 @@ endpoints sit behind the inspector password when one is set.
 - [x] **M4** Inspector UI — a Hotwire dashboard; attempts stream in live
 - [x] **M5** Replay — re-deliver an event from the UI and API
 - [x] **M6** Signatures — verify inbound provider HMAC, sign outbound
-- [ ] **M7** Multi-tenant accounts + API keys
+- [x] **M7** Multi-tenant accounts + API keys
 - [ ] **M8** Idempotency keys + rate limiting
 - [ ] **M9** Observability — per-destination success rate, latency, retries
 - [ ] **M10** Deploy (Kamal) + demo + `v0.1.0`

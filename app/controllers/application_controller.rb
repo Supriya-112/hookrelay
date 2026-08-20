@@ -1,4 +1,5 @@
 class ApplicationController < ActionController::Base
+  include Authentication
   # No browser requirement is declared here. Ingest has to accept whatever a
   # provider sends it, and the generated `allow_browser versions: :modern` answered
   # 406 to any sender whose user agent looks like an old browser — dropping the

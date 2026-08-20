@@ -104,6 +104,11 @@ jobs:
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          # Throwaway keys for the encrypted columns. Not secrets — they protect a
+          # test database that is thrown away with the runner.
+          AR_ENCRYPTION_PRIMARY_KEY: hookrelay-test-primary-key-0000000000
+          AR_ENCRYPTION_DETERMINISTIC_KEY: hookrelay-test-deterministic-key-0000
+          AR_ENCRYPTION_KEY_DERIVATION_SALT: hookrelay-test-key-derivation-salt-00
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test
@@ -143,6 +148,9 @@ jobs:
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          AR_ENCRYPTION_PRIMARY_KEY: hookrelay-test-primary-key-0000000000
+          AR_ENCRYPTION_DETERMINISTIC_KEY: hookrelay-test-deterministic-key-0000
+          AR_ENCRYPTION_KEY_DERIVATION_SALT: hookrelay-test-key-derivation-salt-00
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test:system

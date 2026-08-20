@@ -4,7 +4,7 @@ class IngestTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
   test "enqueues delivery for the received event" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
 
     assert_enqueued_with(job: DeliverEventJob) do
       post ingest_path(source.token), params: "{}", headers: { "Content-Type" => "application/json" }
@@ -12,7 +12,7 @@ class IngestTest < ActionDispatch::IntegrationTest
   end
 
   test "stores an incoming webhook and acknowledges with 202" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
     payload = { "event" => "push", "id" => 42 }.to_json
 
     assert_difference -> { source.events.count }, 1 do
@@ -30,7 +30,7 @@ class IngestTest < ActionDispatch::IntegrationTest
   end
 
   test "accepts a body that is not text, such as a gzipped payload" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
     payload = "\x1f\x8b\x08\x00\x00\x00\x00\x00binary\xC3\x28".b
 
     post ingest_path(source.token), params: payload, headers: { "Content-Type" => "application/octet-stream" }
@@ -40,7 +40,7 @@ class IngestTest < ActionDispatch::IntegrationTest
   end
 
   test "accepts a sender whose user agent looks like an ancient browser" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
 
     assert_difference -> { source.events.count }, 1 do
       post ingest_path(source.token),
@@ -52,7 +52,7 @@ class IngestTest < ActionDispatch::IntegrationTest
   end
 
   test "a source that verifies signatures stores a correctly signed webhook" do
-    source = Source.create!(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
+    source = create_source(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
     payload = '{"event":"push"}'
 
     assert_difference -> { source.events.count }, 1 do
@@ -66,7 +66,7 @@ class IngestTest < ActionDispatch::IntegrationTest
   end
 
   test "a wrongly signed webhook is refused and stores nothing" do
-    source = Source.create!(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
+    source = create_source(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
 
     assert_no_difference -> { Event.count } do
       post ingest_path(source.token), params: '{"event":"push"}', headers: {
@@ -79,7 +79,7 @@ class IngestTest < ActionDispatch::IntegrationTest
   end
 
   test "an unsigned webhook is refused when the source expects signatures" do
-    source = Source.create!(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
+    source = create_source(name: "GitHub", signature_scheme: "github", signing_secret: "whsec_1")
 
     assert_no_difference -> { Event.count } do
       post ingest_path(source.token), params: "{}", headers: { "Content-Type" => "application/json" }

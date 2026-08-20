@@ -2,6 +2,11 @@
 # by the token in its URL and stored as an Event, then acknowledged immediately
 # with 202 — delivery to destinations happens out of band (M2+).
 class IngestController < ApplicationController
+  # A provider has no account here and nothing to sign in with — the URL's token
+  # is what identifies the source, and a signature is what vouches for the request
+  # (see InboundSignature). Everything else in the app requires a session.
+  allow_unauthenticated_access
+
   # Providers can't send a CSRF token, and there's no session here, so the
   # forgery check doesn't apply to this endpoint.
   skip_forgery_protection

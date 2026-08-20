@@ -1,6 +1,7 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
+require_relative "test_helpers/session_test_helper"
 require "webmock/minitest"
 
 # No real outbound HTTP in tests; delivery targets are stubbed per test.
@@ -14,15 +15,22 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Runs the block with the inspector behind a password, as a deployment that
-    # sets HOOKRELAY_INSPECTOR_USER and _PASSWORD has it.
-    def with_inspector_password(user: "watcher", password: "s3cret")
-      hookrelay = Rails.configuration.x.hookrelay
-      was = hookrelay.inspector_credentials
-      hookrelay.inspector_credentials = { user: user, password: password }
-      yield user, password
-    ensure
-      hookrelay.inspector_credentials = was
+    # Most tests care that a source belongs to some account, not which one.
+    def create_source(account: nil, **attributes)
+      account ||= Account.create!(name: "Test account")
+      account.sources.create!(**attributes)
+    end
+
+    # An account with an owner who is signed in, for tests of the pages behind the
+    # login. Integration tests get `sign_in_as` from SessionTestHelper.
+    def sign_in_new_account(name: "Acme")
+      account = Account.create!(name: name)
+      user = account.users.create!(
+        email_address: "owner-#{SecureRandom.hex(4)}@example.com",
+        password: "password"
+      )
+      sign_in_as user
+      account
     end
 
     # Runs the block with DestinationGuard enforcing, the way any deployment other

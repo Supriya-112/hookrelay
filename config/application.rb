@@ -30,13 +30,12 @@ module Hookrelay
     # not.
     config.x.hookrelay.allow_private_destinations = ENV["HOOKRELAY_ALLOW_PRIVATE_DESTINATIONS"] == "true"
 
-    # Optional password on the inspector pages until accounts arrive: set both
-    # variables to switch it on. See InspectorController.
-    if ENV["HOOKRELAY_INSPECTOR_USER"].present? && ENV["HOOKRELAY_INSPECTOR_PASSWORD"].present?
-      config.x.hookrelay.inspector_credentials = {
-        user: ENV["HOOKRELAY_INSPECTOR_USER"],
-        password: ENV["HOOKRELAY_INSPECTOR_PASSWORD"]
-      }
-    end
+    # Keys for the encrypted signing secrets, from the environment in every
+    # environment so none of them sits in this repository looking like a real one.
+    # docker-compose.yml and the CI workflow pass throwaway values for development
+    # and test; a deployment passes keys made with `bin/rails db:encryption:init`.
+    config.active_record.encryption.primary_key = ENV["AR_ENCRYPTION_PRIMARY_KEY"]
+    config.active_record.encryption.deterministic_key = ENV["AR_ENCRYPTION_DETERMINISTIC_KEY"]
+    config.active_record.encryption.key_derivation_salt = ENV["AR_ENCRYPTION_KEY_DERIVATION_SALT"]
   end
 end

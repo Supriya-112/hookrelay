@@ -8,14 +8,14 @@ class EventTest < ActiveSupport::TestCase
   end
 
   test "is valid when attached to a source" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
     event = source.events.new(http_method: "POST", headers: {}, body: "{}")
 
     assert event.valid?
   end
 
   test "stores a body that is not valid UTF-8, byte for byte" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
     payload = "\x1f\x8b\x08\x00compressed\xC3\x28".b
 
     event = source.events.create!(http_method: "POST", content_type: "application/octet-stream", headers: {}, body: payload)
@@ -32,7 +32,7 @@ class EventTest < ActiveSupport::TestCase
   end
 
   test "replaying resets every delivery and fans the event out again" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
     event = source.events.create!(http_method: "POST", headers: {}, body: "{}")
     resolved = Delivery.create!(event: event, destination: source.destinations.create!(url: "https://a.example.com/hook"))
     resolved.update!(status: :succeeded, attempts_count: 1)
@@ -48,7 +48,7 @@ class EventTest < ActiveSupport::TestCase
   end
 
   test "replaying skips a delivery a worker is holding but still fans out" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
     event = source.events.create!(http_method: "POST", headers: {}, body: "{}")
     in_flight = Delivery.create!(event: event, destination: source.destinations.create!(url: "https://a.example.com/hook"))
     in_flight.claim

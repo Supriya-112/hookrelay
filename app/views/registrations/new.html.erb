@@ -1,0 +1,29 @@
+<% content_for :title, "Set up Hookrelay" %>
+
+<h1>Set up Hookrelay</h1>
+<p class="meta">
+  This is the only time this form appears: it creates the account and its first
+  user. Anyone else who needs access is added from the console.
+</p>
+
+<% if @user.errors.any? %>
+  <div class="flash flash-alert">
+    <%= @user.errors.full_messages.to_sentence %>
+  </div>
+<% end %>
+
+<%= form_with url: registration_path, class: "form" do |form| %>
+  <%= form.label :account_name, "Account name" %>
+  <%= form.text_field :account_name, value: params[:account_name], placeholder: "Hookrelay" %>
+
+  <%= form.label :email_address, "Your email address" %>
+  <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", value: params[:email_address] %>
+
+  <%= form.label :password, "Password" %>
+  <%= form.password_field :password, required: true, autocomplete: "new-password", maxlength: 72 %>
+
+  <%= form.label :password_confirmation, "Password again" %>
+  <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", maxlength: 72 %>
+
+  <%= form.submit "Create account", class: "btn" %>
+<% end %>

@@ -36,6 +36,12 @@ services:
       # Local destinations (a sink on your machine, another container) are private
       # addresses, which deliveries refuse to call anywhere else.
       HOOKRELAY_ALLOW_PRIVATE_DESTINATIONS: "true"
+      # Throwaway keys for the encrypted columns, so development and test need no
+      # setup. Not secrets: they protect a database you can delete and rebuild.
+      # A deployment passes real keys instead — see the README.
+      AR_ENCRYPTION_PRIMARY_KEY: hookrelay-dev-primary-key-00000000000
+      AR_ENCRYPTION_DETERMINISTIC_KEY: hookrelay-dev-deterministic-key-00000
+      AR_ENCRYPTION_KEY_DERIVATION_SALT: hookrelay-dev-key-derivation-salt-000
     volumes:
       - .:/app
       - bundle:/usr/local/bundle

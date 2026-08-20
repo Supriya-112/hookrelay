@@ -1,0 +1,3 @@
+# The account the fixture users belong to; everything else is created in tests.
+one:
+  name: Acme

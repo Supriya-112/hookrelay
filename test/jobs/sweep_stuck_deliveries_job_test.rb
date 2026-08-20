@@ -77,7 +77,7 @@ class SweepStuckDeliveriesJobTest < ActiveJob::TestCase
   private
 
   def build_delivery
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
     event = source.events.create!(http_method: "POST", headers: {}, body: "{}")
     destination = source.destinations.create!(url: "https://ok.example.com/hook")
     Delivery.create!(event: event, destination: destination)

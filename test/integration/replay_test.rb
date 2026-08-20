@@ -1,6 +1,8 @@
 require "test_helper"
 
 class ReplayTest < ActionDispatch::IntegrationTest
+  setup { @account = sign_in_new_account }
+
   include ActiveJob::TestHelper
   include ActionCable::TestHelper
 
@@ -28,7 +30,7 @@ class ReplayTest < ActionDispatch::IntegrationTest
   end
 
   test "replaying an event with nowhere to deliver says that instead" do
-    event = Source.create!(name: "GitHub").events.create!(http_method: "POST", headers: {}, body: "{}")
+    event = create_source(account: @account, name: "GitHub").events.create!(http_method: "POST", headers: {}, body: "{}")
 
     post replay_event_path(event)
 
@@ -91,17 +93,37 @@ class ReplayTest < ActionDispatch::IntegrationTest
     assert_equal "delivering", response.parsed_body["status"]
   end
 
-  test "replaying is behind the inspector's password when one is set" do
+  test "a script replays with an API key instead of a session" do
     delivery = build_delivery
+    key = ApiKey.issue(account: @account, name: "deploy script")
+    sign_out
 
-    with_inspector_password do |user, password|
-      post replay_delivery_path(delivery), as: :json
-      assert_response :unauthorized
+    post replay_delivery_path(delivery), as: :json, headers: bearer(key.token)
 
-      post replay_delivery_path(delivery), as: :json,
-        headers: { "HTTP_AUTHORIZATION" => ActionController::HttpAuthentication::Basic.encode_credentials(user, password) }
-      assert_response :accepted
-    end
+    assert_response :accepted
+    assert key.reload.last_used_at.present?, "a key's last use is worth knowing"
+  end
+
+  test "a replay without a session or a key is refused" do
+    delivery = build_delivery
+    sign_out
+
+    post replay_delivery_path(delivery), as: :json
+    assert_response :unauthorized
+
+    post replay_delivery_path(delivery), as: :json, headers: bearer("hr_not-a-real-key")
+    assert_response :unauthorized
+  end
+
+  test "a key belonging to another account cannot replay this delivery" do
+    delivery = build_delivery
+    other_key = ApiKey.issue(account: Account.create!(name: "Someone else"), name: "theirs")
+    sign_out
+
+    post replay_delivery_path(delivery), as: :json, headers: bearer(other_key.token)
+
+    assert_response :not_found
+    assert_nil delivery.reload.replayed_at, "and the delivery is left untouched"
   end
 
   test "a reset delivery is broadcast to the event's page" do
@@ -122,7 +144,7 @@ class ReplayTest < ActionDispatch::IntegrationTest
   private
 
   def build_delivery
-    source = Source.create!(name: "GitHub")
+    source = create_source(account: @account, name: "GitHub")
     event = source.events.create!(http_method: "POST", content_type: "application/json", headers: {}, body: "{}")
     Delivery.create!(event: event, destination: source.destinations.create!(url: "https://example.com/hook"))
   end
@@ -130,5 +152,9 @@ class ReplayTest < ActionDispatch::IntegrationTest
   def stream_subscribed_on_page
     source_tag = css_select("turbo-cable-stream-source").sole
     Turbo::StreamsChannel.verified_stream_name(source_tag["signed-stream-name"])
+  end
+
+  def bearer(token)
+    { "HTTP_AUTHORIZATION" => "Bearer #{token}" }
   end
 end

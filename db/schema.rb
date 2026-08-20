@@ -10,9 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_19_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_20_140200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "accounts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "api_keys", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "last_used_at"
+    t.string "name", null: false
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_api_keys_on_account_id"
+    t.index ["token_digest"], name: "index_api_keys_on_token_digest", unique: true
+  end
 
   create_table "deliveries", force: :cascade do |t|
     t.integer "attempts_count", default: 0, null: false
@@ -62,19 +79,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_120000) do
     t.index ["source_id"], name: "index_events_on_source_id"
   end
 
+  create_table "sessions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
   create_table "sources", force: :cascade do |t|
+    t.bigint "account_id", null: false
     t.datetime "created_at", null: false
     t.string "name"
     t.string "signature_scheme"
     t.string "signing_secret"
     t.string "token", null: false
     t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_sources_on_account_id"
     t.index ["token"], name: "index_sources_on_token", unique: true
   end
 
+  create_table "users", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.string "email_address", null: false
+    t.string "password_digest", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_users_on_account_id"
+    t.index ["email_address"], name: "index_users_on_email_address", unique: true
+  end
+
+  add_foreign_key "api_keys", "accounts"
   add_foreign_key "deliveries", "destinations"
   add_foreign_key "deliveries", "events"
   add_foreign_key "delivery_attempts", "deliveries"
   add_foreign_key "destinations", "sources"
   add_foreign_key "events", "sources"
+  add_foreign_key "sessions", "users"
+  add_foreign_key "sources", "accounts"
+  add_foreign_key "users", "accounts"
 end

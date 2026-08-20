@@ -165,7 +165,7 @@ class DeliveryJobTest < ActiveJob::TestCase
   private
 
   def build_delivery(url)
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
     event = source.events.create!(http_method: "POST", content_type: "application/json", headers: {}, body: "the-payload")
     destination = source.destinations.create!(url: url)
     Delivery.create!(event: event, destination: destination)

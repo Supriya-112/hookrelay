@@ -1,0 +1,10 @@
+<% content_for :title, "Reset your password — Hookrelay" %>
+
+<h1>Forgot your password?</h1>
+
+<%= form_with url: passwords_path, class: "form" do |form| %>
+  <%= form.label :email_address, "Email address" %>
+  <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", value: params[:email_address] %>
+
+  <%= form.submit "Email reset instructions", class: "btn" %>
+<% end %>

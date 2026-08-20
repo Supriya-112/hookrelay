@@ -2,7 +2,7 @@ require "test_helper"
 
 class DestinationTest < ActiveSupport::TestCase
   test "gets its own signing secret on create" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
 
     a = source.destinations.create!(url: "https://a.example.com/hook")
     b = source.destinations.create!(url: "https://b.example.com/hook")
@@ -12,7 +12,7 @@ class DestinationTest < ActiveSupport::TestCase
   end
 
   test "requires an http(s) url" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
 
     assert_not source.destinations.new(url: "not-a-url").valid?
     assert_not source.destinations.new(url: nil).valid?

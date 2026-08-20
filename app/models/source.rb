@@ -2,6 +2,11 @@ class Source < ApplicationRecord
   # Generates a unique, URL-safe token used in the ingest URL (/in/:token).
   has_secure_token
 
+  # The provider's secret, encrypted at rest: a database dump shouldn't hand over
+  # the means to forge webhooks. It is never queried, only read to verify.
+  encrypts :signing_secret
+
+  belongs_to :account
   has_many :events, dependent: :destroy
   has_many :destinations, dependent: :destroy
 

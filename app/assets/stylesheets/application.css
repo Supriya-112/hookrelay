@@ -129,6 +129,38 @@ code {
   font-size: .9rem;
 }
 
+.flash-alert { background: var(--bad-bg); color: var(--bad); }
+
+.topbar-end { margin-left: auto; display: flex; align-items: center; gap: 1rem; font-size: .9rem; }
+.topbar-end form { margin: 0; }
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  max-width: 24rem;
+  margin-top: 1rem;
+}
+
+.form label { font-size: .85rem; color: var(--ink-dim); }
+.form label + input { margin-bottom: .5rem; }
+
+.form input[type="text"], .form input[type="email"], .form input[type="password"] {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .4rem .55rem;
+}
+
+.form input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.form .btn { align-self: flex-start; margin-top: .5rem; }
+
+.form-inline { flex-direction: row; align-items: center; max-width: none; flex-wrap: wrap; }
+.form-inline label + input { margin-bottom: 0; }
+.form-inline .btn { margin-top: 0; }
+
 .btn {
   font: inherit;
   font-size: .85rem;

@@ -82,7 +82,7 @@ class InboundSignatureTest < ActiveSupport::TestCase
   end
 
   test "a source with no scheme verifies nothing" do
-    source = Source.create!(name: "GitHub")
+    source = create_source(name: "GitHub")
 
     assert_not source.verifies_signatures?
     assert_not InboundSignature.valid?(source, body: BODY, headers: { "X-Hub-Signature-256" => github_header(SECRET, BODY) })
@@ -91,7 +91,7 @@ class InboundSignatureTest < ActiveSupport::TestCase
   private
 
   def source_for(scheme)
-    Source.create!(name: "provider", signature_scheme: scheme, signing_secret: SECRET)
+    create_source(name: "provider", signature_scheme: scheme, signing_secret: SECRET)
   end
 
   def github_header(secret, body)
