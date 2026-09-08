@@ -95,6 +95,34 @@ curl -X POST -H 'Accept: application/json' \
 A key only reaches its own account's events, and its last use is recorded so a
 forgotten one can be spotted and revoked.
 
+## Retries from the provider, and limits
+
+Providers retry, and a retry is not a new event. When a request names its delivery
+— `Idempotency-Key`, `Webhook-Id`, `X-Github-Delivery`, `X-Shopify-Webhook-Id` or
+`X-Svix-Id` — that name is stored with the event, unique per source. A repeat gets
+the first event back and is not delivered again:
+
+```json
+{ "event_id": 41, "duplicate": true }
+```
+
+A provider that names nothing still gets an event per request; there's nothing to
+match on, and inventing a key from the body would collide on two genuinely
+identical webhooks.
+
+Ingest also refuses what it shouldn't accept:
+
+| | default | override |
+|---|---|---|
+| body size | 1 MiB → `413` | `HOOKRELAY_MAX_BODY_BYTES` |
+| requests per source | 300 / minute → `429` with `Retry-After` | `HOOKRELAY_SOURCE_RATE_LIMIT`, `HOOKRELAY_RATE_LIMIT_PERIOD` |
+
+The rate limit is per source, so one provider having a bad day can't crowd out
+the others. It is deliberately not also keyed by address — an address limit
+belongs at the edge, where it sees the whole site and can't be sidestepped by
+rotating the token in the URL. The body cap is a backstop for the same reason:
+by the time Rails sees the request the body has already been read off the socket.
+
 ## Signatures
 
 **Inbound.** Tell a source how its provider signs and give it the secret that
@@ -185,6 +213,6 @@ endpoints need either a signed-in session or an API key.
 - [x] **M5** Replay — re-deliver an event from the UI and API
 - [x] **M6** Signatures — verify inbound provider HMAC, sign outbound
 - [x] **M7** Multi-tenant accounts + API keys
-- [ ] **M8** Idempotency keys + rate limiting
+- [x] **M8** Idempotency keys + rate limiting
 - [ ] **M9** Observability — per-destination success rate, latency, retries
 - [ ] **M10** Deploy (Kamal) + demo + `v0.1.0`

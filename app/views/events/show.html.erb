@@ -14,6 +14,9 @@
   <% if @event.content_type.present? %> · <%= @event.content_type %><% end %>
   · <%= number_to_human_size(@event.body.to_s.bytesize) %>
   · received <%= timestamp(@event.created_at) %> UTC
+  <% if @event.idempotency_key.present? %>
+    · the provider called it <code><%= @event.idempotency_key %></code>
+  <% end %>
 </p>
 
 <section>

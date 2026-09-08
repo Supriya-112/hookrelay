@@ -30,6 +30,14 @@ module Hookrelay
     # not.
     config.x.hookrelay.allow_private_destinations = ENV["HOOKRELAY_ALLOW_PRIVATE_DESTINATIONS"] == "true"
 
+    # Ingest limits. A webhook body is a few kilobytes of JSON; something much
+    # larger is a mistake or an attack. The rate limit is per source — generous
+    # enough for a busy provider, low enough that a flood is slowed rather than
+    # absorbed.
+    config.x.hookrelay.max_body_bytes = ENV.fetch("HOOKRELAY_MAX_BODY_BYTES", 1.megabyte).to_i
+    config.x.hookrelay.source_rate_limit = ENV.fetch("HOOKRELAY_SOURCE_RATE_LIMIT", 300).to_i
+    config.x.hookrelay.rate_limit_period = ENV.fetch("HOOKRELAY_RATE_LIMIT_PERIOD", 60).to_i.seconds
+
     # Keys for the encrypted signing secrets, from the environment in every
     # environment so none of them sits in this repository looking like a real one.
     # docker-compose.yml and the CI workflow pass throwaway values for development

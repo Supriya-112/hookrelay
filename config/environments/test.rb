@@ -20,7 +20,10 @@ Rails.application.configure do
 
   # Show full error reports.
   config.consider_all_requests_local = true
-  config.cache_store = :null_store
+  # Rate limiting counts in the cache, and the null store forgets immediately —
+  # which would leave the limits untested. Buckets are keyed per source token, so
+  # a real store here doesn't leak between tests.
+  config.cache_store = :memory_store
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
@@ -55,4 +58,10 @@ Rails.application.configure do
   # the check off, no test resolves a hostname. The tests that cover the check
   # switch it on themselves — see `with_private_destinations_refused`.
   config.x.hookrelay.allow_private_destinations = true
+
+  # Low enough that a test can reach the limit in a few requests, and small enough
+  # a body that one line of padding is over it. The limit is per source token, and
+  # tests make their own sources, so they don't spend each other's allowance.
+  config.x.hookrelay.source_rate_limit = 5
+  config.x.hookrelay.max_body_bytes = 2.kilobytes
 end
