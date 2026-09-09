@@ -55,9 +55,9 @@ class InspectorTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "table.grid tbody tr" do
-      assert_select "td.num", "50%"
-      assert_select "td.num", "80 ms"
-      assert_select "td.num", "1"
+      assert_select "td:nth-child(2)", "50.0%"
+      assert_select "td:nth-child(3)", "80 ms"
+      assert_select "td:nth-child(4)", "1"
     end
   end
 
@@ -69,8 +69,9 @@ class InspectorTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "table.grid tbody tr" do
-      assert_select "td.num", text: "—", count: 2
-      assert_select "td.num", "0"
+      assert_select "td:nth-child(2)", "—"
+      assert_select "td:nth-child(3)", "—"
+      assert_select "td:nth-child(4)", "0"
     end
   end
 

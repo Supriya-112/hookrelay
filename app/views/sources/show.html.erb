@@ -43,8 +43,8 @@
                 </details>
               <% end %>
             </td>
-            <td class="num"><%= stats.success_rate ? number_to_percentage(stats.success_rate * 100, precision: 0) : "—" %></td>
-            <td class="num"><%= stats.avg_latency_ms ? "#{stats.avg_latency_ms} ms" : "—" %></td>
+            <td class="num"><%= stats.success_rate ? number_to_percentage(stats.success_rate * 100, precision: 1) : "—" %></td>
+            <td class="num"><%= stats.avg_latency_ms ? format_duration(stats.avg_latency_ms) : "—" %></td>
             <td class="num"><%= stats.retries %></td>
           </tr>
         <% end %>

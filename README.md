@@ -211,8 +211,8 @@ Each source page shows, per destination, how it's actually doing:
   dead-lettered), the share that succeeded. One still pending or waiting on a
   retry isn't counted either way until it's settled.
 - **Latency** — the average response time of successful attempts only. A
-  failed attempt's duration says nothing about how fast the destination
-  normally responds, and a connection error often has no duration at all.
+  failed attempt's duration doesn't reflect how fast the destination normally
+  responds, so it isn't counted.
 - **Retries** — attempts beyond each delivery's first. A destination that
   needs a retry now and then is different from one that never gets there
   without one.

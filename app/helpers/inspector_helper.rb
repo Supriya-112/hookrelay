@@ -17,6 +17,11 @@ module InspectorHelper
     tag.time time.utc.strftime(format), datetime: time.iso8601, title: "#{time.utc} UTC"
   end
 
+  # The one place a millisecond duration becomes what's shown to a person.
+  def format_duration(ms)
+    "#{ms} ms"
+  end
+
   # Most providers send JSON, and reading it as one line is painful. Anything that
   # doesn't parse is shown exactly as it arrived.
   def payload_body(event)

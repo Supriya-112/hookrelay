@@ -16,6 +16,10 @@ class Delivery < ApplicationRecord
   # States a worker may pick up: never attempted, or waiting on a retry.
   CLAIMABLE_STATUSES = %w[pending failed].freeze
 
+  # States that won't change again on their own: a retry budget exhausted or an
+  # attempt that landed.
+  CONCLUDED_STATUSES = %w[succeeded dead].freeze
+
   # Keep an open event page current as deliveries are created and resolve. `claim`
   # deliberately isn't broadcast: it writes with update_all, so the momentary
   # delivering state doesn't reach the page — the row updates when the attempt

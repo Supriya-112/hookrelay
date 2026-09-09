@@ -2,7 +2,7 @@
   <span class="code"><%= delivery_attempt.status_code || "no response" %></span>
   <span class="dim"><%= timestamp(delivery_attempt.created_at, format: "%H:%M:%S") %></span>
   <% if delivery_attempt.duration_ms.present? %>
-    <span class="dim"><%= delivery_attempt.duration_ms %> ms</span>
+    <span class="dim"><%= format_duration(delivery_attempt.duration_ms) %></span>
   <% end %>
   <% if delivery_attempt.error.present? %>
     <span class="attempt-error"><%= delivery_attempt.error %></span>
