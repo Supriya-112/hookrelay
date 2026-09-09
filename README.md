@@ -203,6 +203,24 @@ endpoints need either a signed-in session or an API key.
   `HOOKRELAY_ALLOW_PRIVATE_DESTINATIONS=true` and can deliver to sinks on your
   machine.
 
+## Destination health
+
+Each source page shows, per destination, how it's actually doing:
+
+- **Success rate** — of the deliveries that have concluded (succeeded or
+  dead-lettered), the share that succeeded. One still pending or waiting on a
+  retry isn't counted either way until it's settled.
+- **Latency** — the average response time of successful attempts only. A
+  failed attempt's duration says nothing about how fast the destination
+  normally responds, and a connection error often has no duration at all.
+- **Retries** — attempts beyond each delivery's first. A destination that
+  needs a retry now and then is different from one that never gets there
+  without one.
+
+All three are all-time, computed from the attempts already on record — nothing
+extra to configure or store. A destination shows `—` where nothing has
+concluded yet, rather than a rate or latency with nothing behind it.
+
 ## Roadmap
 
 - [x] **M0** Scaffold: Rails 8, Postgres, CI (RuboCop + tests + Brakeman), Docker dev, Kamal stub
@@ -214,5 +232,5 @@ endpoints need either a signed-in session or an API key.
 - [x] **M6** Signatures — verify inbound provider HMAC, sign outbound
 - [x] **M7** Multi-tenant accounts + API keys
 - [x] **M8** Idempotency keys + rate limiting
-- [ ] **M9** Observability — per-destination success rate, latency, retries
+- [x] **M9** Observability — per-destination success rate, latency, retries
 - [ ] **M10** Deploy (Kamal) + demo + `v0.1.0`

@@ -38,6 +38,42 @@ class InspectorTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(event)}"
   end
 
+  test "a source page shows each destination's success rate, latency and retries" do
+    source = create_source(account: @account, name: "GitHub")
+    destination = source.destinations.create!(url: "https://example.com/hook")
+
+    succeeded = Delivery.create!(event: source.events.create!(http_method: "POST", headers: {}, body: "{}"),
+                                  destination: destination, status: :succeeded, attempts_count: 2)
+    succeeded.delivery_attempts.create!(status_code: 500, duration_ms: 40)
+    succeeded.delivery_attempts.create!(status_code: 200, duration_ms: 80)
+
+    dead = Delivery.create!(event: source.events.create!(http_method: "POST", headers: {}, body: "{}"),
+                             destination: destination, status: :dead, attempts_count: 1)
+    dead.delivery_attempts.create!(status_code: 500, duration_ms: 10)
+
+    get source_path(source)
+
+    assert_response :success
+    assert_select "table.grid tbody tr" do
+      assert_select "td.num", "50%"
+      assert_select "td.num", "80 ms"
+      assert_select "td.num", "1"
+    end
+  end
+
+  test "a destination with no concluded deliveries yet shows no rate or latency" do
+    source = create_source(account: @account, name: "GitHub")
+    source.destinations.create!(url: "https://example.com/hook")
+
+    get source_path(source)
+
+    assert_response :success
+    assert_select "table.grid tbody tr" do
+      assert_select "td.num", text: "—", count: 2
+      assert_select "td.num", "0"
+    end
+  end
+
   test "an event page shows its headers with credentials masked" do
     event = build_event(headers: { "Authorization" => "Bearer sk_live_secret", "X-Test" => "abc" })
 
