@@ -90,6 +90,10 @@ production:
     database: hookrelay_production
     username: hookrelay
     password: <%= ENV["HOOKRELAY_DATABASE_PASSWORD"] %>
+    # Blank talks to a local socket, same as development — the default until a
+    # deploy puts Postgres on its own host or accessory container. Kamal sets
+    # DB_HOST for that case (see config/deploy.yml).
+    host: <%= ENV["DB_HOST"] %>
   cache:
     <<: *primary_production
     database: hookrelay_production_cache

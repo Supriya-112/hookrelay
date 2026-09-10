@@ -221,6 +221,32 @@ All three are all-time, computed from the attempts already on record — nothing
 extra to configure or store. A destination shows `—` where nothing has
 concluded yet, rather than a rate or latency with nothing behind it.
 
+## Deploy
+
+`config/deploy.yml` is configured for this app — a self-hosted Postgres
+accessory, `ghcr.io` as the registry, every secret the app actually needs — but
+it isn't pointed at a real server yet. `203.0.113.1` (reserved for
+documentation, RFC 5737) stands in for one in both places it's used.
+
+To actually deploy:
+
+1. Get a server with Docker installed and point `&server` in `config/deploy.yml`
+   at its address.
+2. Export these before running any `bin/kamal` command — generate the
+   `AR_ENCRYPTION_*` ones with `bin/rails db:encryption:init`, and don't reuse
+   the `hookrelay-dev-*` values `docker-compose.yml` uses for local work:
+   `KAMAL_REGISTRY_PASSWORD` (a GitHub PAT with `write:packages`),
+   `AR_ENCRYPTION_PRIMARY_KEY`, `AR_ENCRYPTION_DETERMINISTIC_KEY`,
+   `AR_ENCRYPTION_KEY_DERIVATION_SALT`, `HOOKRELAY_DATABASE_PASSWORD`.
+3. `bin/kamal setup` — builds the image, starts the db accessory, boots the
+   app. `bin/docker-entrypoint` runs `db:prepare` on every boot, which creates
+   the primary/cache/queue/cable databases on first run.
+4. Once there's a domain, uncomment `proxy:` in `config/deploy.yml` for
+   Let's Encrypt SSL, and turn on `config.assume_ssl`/`config.force_ssl` in
+   `config/environments/production.rb`.
+
+No live demo yet — this is what a deploy needs, not a deploy that's happened.
+
 ## Roadmap
 
 - [x] **M0** Scaffold: Rails 8, Postgres, CI (RuboCop + tests + Brakeman), Docker dev, Kamal stub
