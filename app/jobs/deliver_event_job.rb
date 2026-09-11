@@ -6,9 +6,8 @@ class DeliverEventJob < ApplicationJob
   queue_as :default
 
   def perform(event)
-    event.source.destinations.find_each do |destination|
-      DeliveryJob.perform_later(delivery_for(event, destination))
-    end
+    jobs = event.source.destinations.map { |destination| DeliveryJob.new(delivery_for(event, destination)) }
+    ActiveJob.perform_all_later(jobs)
   end
 
   private

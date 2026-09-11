@@ -34,6 +34,6 @@ class SweepStuckDeliveriesJob < ApplicationJob
   end
 
   def requeue(deliveries)
-    deliveries.find_each { |delivery| DeliveryJob.perform_later(delivery) }
+    ActiveJob.perform_all_later(deliveries.map { |delivery| DeliveryJob.new(delivery) })
   end
 end

@@ -15,6 +15,13 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
+    # The ingest rate limiter needs a real cache to be testable (see
+    # config/environments/test.rb), which means Rails.cache now persists for the
+    # life of each parallel worker process. Without this, a rate limit's count —
+    # ingest's or the pre-existing ones on sessions/passwords — would carry from
+    # one test into the next and make failures depend on run order.
+    setup { Rails.cache.clear }
+
     # Most tests care that a source belongs to some account, not which one.
     def create_source(account: nil, **attributes)
       account ||= Account.create!(name: "Test account")

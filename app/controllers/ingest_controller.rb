@@ -35,6 +35,10 @@ class IngestController < ApplicationController
   # it was never something the sender set, so it isn't part of the event.
   RACK_PSEUDO_HEADERS = %w[HTTP_VERSION].freeze
 
+  # Rack drops these two out of the HTTP_* namespace entirely (a CGI convention),
+  # so a plain HTTP_ prefix check would miss headers every provider sends.
+  UNPREFIXED_HEADERS = %w[CONTENT_TYPE CONTENT_LENGTH].freeze
+
   def create
     source = Source.find_by(token: token)
     return head :not_found unless source
@@ -58,17 +62,20 @@ class IngestController < ApplicationController
   end
 
   # A provider retrying a delivery it already sent gets the first event back
-  # rather than a second copy of it, and nothing is delivered twice.
+  # rather than a second copy of it, and nothing is delivered twice. Without a
+  # key there's nothing to dedupe on, so every request is its own event.
+  #
+  # create_or_find_by! tries the insert first: one round trip on the common,
+  # non-duplicate path, and only a second one — the unique index settling which
+  # of two concurrent copies is the event — when it actually collides.
   def store(source)
     key = idempotency_key
-    existing = source.events.find_by(idempotency_key: key) if key.present?
-    return [ existing, false ] if existing
+    return [ source.events.create!(**event_attributes(key)), true ] if key.blank?
 
-    [ source.events.create!(**event_attributes(key)), true ]
-  rescue ActiveRecord::RecordNotUnique
-    # Two copies of the same delivery arrived together; the unique index settled
-    # which one is the event, and this is the other one.
-    [ source.events.find_by!(idempotency_key: key), false ]
+    event = source.events.create_or_find_by!(idempotency_key: key) do |new_event|
+      new_event.assign_attributes(event_attributes(key).except(:idempotency_key))
+    end
+    [ event, event.previously_new_record? ]
   end
 
   def event_attributes(key)
@@ -86,16 +93,22 @@ class IngestController < ApplicationController
   end
 
   # The cap is a backstop, not a shield: by the time this runs the body has been
-  # read off the socket, so an edge proxy should have a limit of its own. Checking
-  # the declared length first means the usual oversized request is refused without
-  # looking at what it sent.
+  # read off the socket, so an edge proxy should have a limit of its own. Reading
+  # at most one byte over the cap, rather than trusting a declared Content-Length
+  # or reading to EOF, bounds how much an oversized body — chunked or lying about
+  # its size — ever costs in memory before being rejected.
   def too_large?
     max = Rails.configuration.x.hookrelay.max_body_bytes
-    declared = request.content_length
+    oversized = request.body.read(max + 1).to_s.bytesize > max
 
-    return true if declared.present? && declared > max
+    begin
+      request.body.rewind
+    rescue IOError, Errno::ESPIPE
+      # Not every input stream can rewind — the same fallback raw_post itself
+      # uses. Nothing downstream has read from it yet, so nothing is lost.
+    end
 
-    request.raw_post.bytesize > max
+    oversized
   end
 
   # A source with no scheme configured takes whatever reaches its URL; one that
@@ -120,7 +133,8 @@ class IngestController < ApplicationController
   # without the rest of the server's environment.
   def request_headers
     request.headers.env.each_with_object({}) do |(key, value), headers|
-      next unless key.start_with?("HTTP_") && value.is_a?(String)
+      next unless value.is_a?(String)
+      next unless key.start_with?("HTTP_") || UNPREFIXED_HEADERS.include?(key)
       next if RACK_PSEUDO_HEADERS.include?(key)
 
       name = key.delete_prefix("HTTP_").split("_").map(&:capitalize).join("-")

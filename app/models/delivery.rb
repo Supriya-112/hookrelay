@@ -41,18 +41,31 @@ class Delivery < ApplicationRecord
   # away. Returns false for a delivery a worker is already holding — it is on its
   # way, and resetting it would race whoever has it.
   def replay
-    return false if delivering?
+    return false unless reset_for_replay!
 
-    reset_for_replay!
     DeliveryJob.perform_later(self)
     true
   end
 
   # Clears the outcome of the last run without touching its attempts, which stay
-  # as the record of what happened. Event#replay uses this to reset a whole event
-  # before one fan-out queues the work.
+  # as the record of what happened, and starts the retry budget over. Event#replay
+  # uses this to reset a whole event before one fan-out queues the work.
+  #
+  # The UPDATE itself is the delivering? check, same reasoning as `claim` and for
+  # the same reason: a worker could claim this delivery in the moment between an
+  # in-memory check and a plain update!, and an unconditional write would then
+  # stomp the claim while the real POST is still in flight. Broadcast explicitly
+  # rather than through after_update_commit, since update_all doesn't run
+  # callbacks — unlike claim's momentary delivering state, a reset back to
+  # pending is exactly what the inspector should show.
   def reset_for_replay!
-    update!(status: :pending, attempts_count: 0, next_attempt_at: nil, replayed_at: Time.current)
+    updated = self.class.where(id: id).where.not(status: :delivering)
+                  .update_all(status: :pending, attempts_count: 0, next_attempt_at: nil, replayed_at: Time.current) == 1
+    return false unless updated
+
+    reload
+    broadcast_replace_later_to event, target: row_dom_id, partial: "deliveries/delivery", locals: { delivery: self }
+    true
   end
 
   def replayed?

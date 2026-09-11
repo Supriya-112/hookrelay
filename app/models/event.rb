@@ -16,10 +16,10 @@ class Event < ApplicationRecord
   # that already exist start over; a destination added since the event arrived
   # gets its first delivery from the fan-out, which also queues the work — so a
   # delivery is never handed two jobs for the same replay. Returns the deliveries
-  # that were reset, skipping any a worker is currently holding.
+  # that were reset — reset_for_replay! itself decides whether a delivery a
+  # worker is currently holding gets skipped, not a check made here first.
   def replay
-    reset = deliveries.reject(&:delivering?)
-    reset.each(&:reset_for_replay!)
+    reset = deliveries.select(&:reset_for_replay!)
     DeliverEventJob.perform_later(self)
     reset
   end

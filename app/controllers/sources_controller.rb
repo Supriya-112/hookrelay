@@ -51,7 +51,6 @@ class SourcesController < InspectorController
                                      .group("deliveries.destination_id")
                                      .pluck(Arel.sql("deliveries.destination_id"), Arel.sql("COUNT(*)"), Arel.sql("COUNT(DISTINCT delivery_attempts.delivery_id)"))
                                      .to_h { |id, total, attempted| [ id, [ total, attempted ] ] }
-    attempt_counts.default = [ 0, 0 ]
 
     # A failed attempt's duration doesn't reflect how fast the destination
     # normally responds, so only a successful attempt's timing counts here.
@@ -61,9 +60,8 @@ class SourcesController < InspectorController
 
     ids.index_with do |id|
       succeeded = concluded[[ id, "succeeded" ]]
-      dead = concluded[[ id, "dead" ]]
-      finished = succeeded + dead
-      total, attempted = attempt_counts[id]
+      finished = Delivery::CONCLUDED_STATUSES.sum { |status| concluded[[ id, status ]] }
+      total, attempted = attempt_counts.fetch(id, [ 0, 0 ])
 
       DestinationStats.new(
         success_rate: finished.zero? ? nil : succeeded.to_f / finished,
